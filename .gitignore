@@ -1,0 +1,40 @@
+# Ignore Python cache and temp files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.swp
+*.tmp
+*.log
+
+# Ignore virtual environment
+venv/
+
+# Ignore data and runs but keep empty folders
+train/*
+test/*
+valid/*
+runs/*
+InsectClassificationModel/*
+
+# Keep .gitkeep so the folders stay in repo
+!train/.gitkeep
+!test/.gitkeep
+!valid/.gitkeep
+!runs/.gitkeep
+!InsectClassificationModel/.gitkeep
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore insect datasets
+Insect-Types-Classes/*
+foundInsects/*
+
+# But keep empty folder with .gitkeep
+!Insect-Types-Classes/.gitkeep
+!foundInsects/.gitkeep
+
+# Ignore PyTorch model weights
+*.pt
