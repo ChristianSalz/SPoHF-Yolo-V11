@@ -81,3 +81,39 @@ pip install -r requirements.txt
 You guys are pros, you dont need installation instructions :)
 
 # Concept
+
+Modern agriculture faces growing challenges in monitoring insect populations efficiently. Manual counting of insects on yellow sticky traps is time-consuming, subjective, and inconsistent.
+The SPOHF project aims to automate this process using AI-based image analysis.
+
+We use a YOLOv8 model trained on real images of insects captured on sticky traps to:
+
+   - Detect and count insects automatically,
+
+   - Reduce human error and evaluation time,
+
+   - Enable faster and more reliable pest monitoring in both greenhouse and field environments.
+
+The image below shows an example of our inference process — transforming raw input images into annotated outputs using the trained model:
+
+<p align="center">
+  <img src="./PR-Material/concept.png" alt="Model Concept" width="45%">
+  <img src="./PR-Material/field-evaluation.png" alt="Field Evaluation" width="45%">
+</p>
+
+# Human vs. AI Counting Study
+
+As part of our evaluation, we conducted a human–AI comparison study to measure accuracy and time efficiency when counting insects on yellow sticky traps.
+
+![Chart showing results](./PR-Material/study-data.png)
+
+A specialized dataset of 227 insect images was developed from yellow sticky traps, of which 104 were annotated with a single class named “insect.”
+
+The model achieved an average precision of 56.16%, with the mAP50 stabilizing at around 21.88% toward the end of training.
+Further evaluation using the validation set demonstrated an average box precision of 79.8%, a strong result considering the dataset’s limited size and complexity.
+
+A field study with 19 participants compared human and AI performance in counting insects.
+Manual counting required an average of 1 minute and 46 seconds per image, while the AI model completed the same task in just **_196.5 milliseconds, reducing the required time by more than 99.81%_**.
+In addition, 11 out of 19 participants preferred the AI-generated results over their own counts, and all participants indicated they would prefer an AI system if they had to perform insect counting for an entire day.
+
+The YOLOv8-m model was trained for 92 cycles with a total training time of 1.964 hours, using 187 augmented images for training and 37 images for validation.
+All experiments were conducted with an image size parameter of imgsz=1024.
