@@ -1,7 +1,7 @@
 import roboflow
 
 # Initialize Roboflow with your API key
-rf = roboflow.Roboflow(api_key='FtYecAJ0Re1CyfvcGd2A')
+rf = roboflow.Roboflow(api_key='YOUR-API-KEY')
 
 # Load the project
 project = rf.workspace().project("spohf-kur4x")
