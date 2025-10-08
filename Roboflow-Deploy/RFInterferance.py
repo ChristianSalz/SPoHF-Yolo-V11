@@ -14,7 +14,7 @@ image = cv2.imread(image_path)
 # Create an inference client
 CLIENT = InferenceHTTPClient(
     api_url="https://detect.roboflow.com",
-    api_key="FtYecAJ0Re1CyfvcGd2A"  # Ensure this is a valid API key
+    api_key="Your-API-KEY"  # Ensure this is a valid API key
 )
 
 # Run inference on the resized image
