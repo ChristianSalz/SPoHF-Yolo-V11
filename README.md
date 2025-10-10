@@ -7,7 +7,7 @@ The project focuses on building and training YOLOv11 models for insect detection
 Please note that dataset folders are intentionally empty — users need to download or provide their own data to run the experiments.  
 
 > **Important note:**  
-> We also have a YOLOv12 expirimental branch (https://github.com/ChristianSalz/YoloV12-Insect-Detection) to try out, but please be aware that these project is not officially supported by the ultralyrtics community so performance and stability may vary.
+> We also have a YOLOv12 experimental branch (https://github.com/ChristianSalz/YoloV12-Insect-Detection) to try out, but please be aware that these project is not officially supported by the ultralytics community so performance and stability may vary.
 
 
 # Installation Instructions (Mac)
@@ -26,7 +26,7 @@ Verify installation:
 brew --version
 ```
 
-2. Install Python 3.13 via Homebrew (YoloV11 officiallt supports Python 3.8 up to 3.12)
+2. Install Python 3.13 via Homebrew (YoloV11 officially supports Python 3.8 up to 3.12)
 
 ```bash
 brew install python@3.13
@@ -67,9 +67,9 @@ pip install -r requirements.txt
 6. Download the data from The SPoHF-Roboflow-Project and add the Train/Valid/Test folder to your project
    https://app.roboflow.com/spohf-insect-counting/spohf-kur4x-dokg9/models - go to 'versions' (left menu), select the version, then press 'download dataset'. Copy over the content in the project directory.
 
-7. Use the trainTheModel.py file to train a yolo v11 model - Currenltly MPS (Apple Metal) is supported, and works, for best performance use a NVIDIA GPU and set device="CUDA"
+7. Use the trainTheModel.py file to train a yolo v11 model - Currently MPS (Apple Metal) is supported, and works, for best performance use a NVIDIA GPU and set device="CUDA"
 
-8. Run the SPoHF-predict.py to test your model PS: update the path to your trained model - example (unseen) data is provide in the `Manual-Test-Data` folder
+8. Run the SPoHF-predict.py to test your model PS: update the path to your trained model - example (unseen) data is provided in the `Manual-Test-Data` folder
 
 # Installation Instructions (Windows)
 
