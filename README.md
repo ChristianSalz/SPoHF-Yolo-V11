@@ -1,9 +1,9 @@
-# SPoHF-YOLOv8 Project
+# SPoHF-YOLOv11 Project
 
 This is the **public repository** for the SPoHF project (https://spohf.com/).  
 All ongoing development, experiments, and updates can be followed here.  
 
-The project focuses on building and training YOLOv8 models for insect detection and classification.  
+The project focuses on building and training YOLOv11 models for insect detection and classification.  
 Please note that dataset folders are intentionally empty — users need to download or provide their own data to run the experiments.  
 
 > **Important note:**  
@@ -26,7 +26,7 @@ Verify installation:
 brew --version
 ```
 
-2. Install Python 3.13 via Homebrew
+2. Install Python 3.13 via Homebrew (YoloV11 officiallt supports Python 3.8 up to 3.12)
 
 ```bash
 brew install python@3.13
@@ -67,7 +67,7 @@ pip install -r requirements.txt
 6. Download the data from The SPoHF-Roboflow-Project and add the Train/Valid/Test folder to your project
    https://app.roboflow.com/spohf-insect-counting/spohf-kur4x-dokg9/models - go to 'versions' (left menu), select the version, then press 'download dataset'. Copy over the content in the project directory.
 
-7. Use the trainTheModel.py file to train a yolo v8 model - Currenltly MPS (Apple Metal) is supported, but stability may vary - as fallback scenario train on the CPU
+7. Use the trainTheModel.py file to train a yolo v11 model - Currenltly MPS (Apple Metal) is supported, and works, for best performance use a NVIDIA GPU and set device="CUDA"
 
 8. Run the SPoHF-predict.py to test your model PS: update the path to your trained model - example (unseen) data is provide in the `Manual-Test-Data` folder
 
