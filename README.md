@@ -1,3 +1,5 @@
+![Project-Banner](./PR-Material/SPoHF-Banner.png)
+
 # SPoHF-YOLOv11 Project
 
 This is the **public repository** for the SPoHF project (https://spohf.com/).  
