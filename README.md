@@ -1,14 +1,18 @@
 # SPoHF-YOLOv11 Project
 
 This is the **public repository** for the SPoHF project (https://spohf.com/).  
-All ongoing development, experiments, and updates can be followed here.  
+All ongoing development, experiments, and updates can be followed here.
 
 The project focuses on building and training YOLOv11 models for insect detection and classification.  
-Please note that dataset folders are intentionally empty — users need to download or provide their own data to run the experiments.  
+Please note that dataset folders are intentionally empty — users need to download or provide their own data to run the experiments.
 
 > **Important note:**  
 > We also have a YOLOv12 experimental branch (https://github.com/ChristianSalz/YoloV12-Insect-Detection) to try out, but please be aware that these project is not officially supported by the ultralytics community so performance and stability may vary.
 
+> **Stability issues:**  
+> It seems like YOLO is still crashing when using Apple Metal (Silicon). Current tests and investigations suggest that this might be linked to high GPU usage.
+> You may want to use the following parameter to limit GPU utilisation: `batch=0.7` (70% of system memory usage) — needs to be confirmed.
+> Alternatively, you can use `device="cpu"`.
 
 # Installation Instructions (Mac)
 
@@ -87,11 +91,11 @@ The SPOHF project aims to automate this process using AI-based image analysis.
 
 We use a YOLOv8 model trained on real images of insects captured on sticky traps to:
 
-   - Detect and count insects automatically,
+- Detect and count insects automatically,
 
-   - Reduce human error and evaluation time,
+- Reduce human error and evaluation time,
 
-   - Enable faster and more reliable pest monitoring in both greenhouse and field environments.
+- Enable faster and more reliable pest monitoring in both greenhouse and field environments.
 
 The image below shows an example of our inference process — transforming raw input images into annotated outputs using the trained model:
 

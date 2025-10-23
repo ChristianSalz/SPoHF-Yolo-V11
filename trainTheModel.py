@@ -10,4 +10,4 @@ model = YOLO(model_path)
 
 # Train the model
 # device="mps" runs on Apple metal you can alos use device="CPU" or if you have a cuda card device="CUDA" you can also use device="AUTO" if you dont know hich GPU you have CUDA > MPS > CPU
-model.train(data=data_path, epochs=5, device="mps", imgsz=320)  
+model.train(data=data_path, epochs=250, device="mps", imgsz=1024, patience=200)  

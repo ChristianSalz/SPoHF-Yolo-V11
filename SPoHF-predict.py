@@ -4,13 +4,13 @@ import cv2  # Required for color conversion
 from ultralytics import YOLO
 
 # Load the image and resize it to:
-image_path = './Manual-Test-Data/1.jpg'
+image_path = './Manual-Test-Data/2.jpg'
 image = Image.open(image_path)
 #image_resized = image.resize((640, 640))
 
 # Load the trained model
 # There are two versions after each run you can choose between last.pt and best.pt
-model = YOLO('./runs/detect/train/weights/last.pt')
+model = YOLO('./runs/detect/train9/weights/last.pt')
 
 # Run inference on the resized image
 # conf=0.40 the minimum confidence for diplaying boundingboxes
