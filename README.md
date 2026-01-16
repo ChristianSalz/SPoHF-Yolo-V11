@@ -8,8 +8,12 @@ All ongoing development, experiments, and updates can be followed here.
 The project focuses on building and training YOLOv11 models for insect detection and classification.  
 Please note that dataset folders are intentionally empty — users need to download or provide their own data to run the experiments.
 
+> **Ultralytics and Yolo Versions:**  
+> The ultralytics package supports multiple YOLO versions, from v3 to v2026 [V13]. You can use any of these versions with the setup provided in this repository. For further deployment instructions, please check the doc at: https://docs.ultralytics.com/models/
+> ![Yolo-Version-Perfromance](./PR-Material/Yolo-versions-performance.png)
+
 > **Important note:**  
-> We also have a YOLOv12 experimental branch (https://github.com/ChristianSalz/YoloV12-Insect-Detection) to try out, but please be aware that these project is not officially supported by the ultralytics community so performance and stability may vary.
+> We also have a YOLOv12 experimental branch (https://github.com/ChristianSalz/YoloV12-Insect-Detection) to try out, but please be aware that these project is not officially supported by the ultralytics community so performance and stability may vary.<span style="color:yellow"> (This branch is not supported anymore and uses a chinese fork of the original V12 which was temporarily unsupported by ultralytics) </span>
 
 > **Stability issues:**  
 > It seems like YOLO is still crashing when using Apple Metal (Silicon). Current tests and investigations suggest that this might be linked to high GPU usage.
