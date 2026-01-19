@@ -38,3 +38,7 @@ foundInsects/*
 
 # Ignore PyTorch model weights
 *.pt
+
+# Secrets
+.env
+*.env
