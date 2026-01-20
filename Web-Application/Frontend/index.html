@@ -13,9 +13,14 @@
 
   <body class="bg-[#020617] text-white font-sans m-0 p-0 h-screen w-screen">
     <div class="flex flex-col h-screen w-screen">
+      <!-- Top bar -->
       <div class="flex items-center justify-between px-4 py-2 gap-4">
-        <h2 class="font-medium text-xl">SPoHF Measurements over Time</h2>
+        <h2 class="font-medium text-xl">
+          SPoHF Data Graph, Company: Vitarom Gbr
+        </h2>
+
         <div class="flex items-center gap-2">
+          <!-- Location picker (existing) -->
           <label for="locationSelect" class="text-sm text-gray-300"
             >Location</label
           >
@@ -26,6 +31,24 @@
             <option>Loading…</option>
           </select>
 
+          <!-- NEW: Limit picker -->
+          <label for="limitSelect" class="text-sm text-gray-300"
+            >Data Nodes</label
+          >
+          <select
+            id="limitSelect"
+            class="bg-slate-800 text-white px-3 py-2 rounded-lg border border-slate-600 focus:outline-none focus:border-blue-500"
+            title="How many latest measurements to load"
+          >
+            <!-- default = 25 -->
+            <option value="25" selected>25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+            <option value="200">200</option>
+            <option value="500">500</option>
+          </select>
+
+          <!-- Refresh (existing) -->
           <button
             id="refreshBtn"
             class="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white px-3 py-2 rounded-md"
@@ -49,10 +72,8 @@
     <script>
       // === Configure your backend URL here ===
       const API_BASE = "https://spohf-yolo-v11-production.up.railway.app";
-
       // Optional: auto-refresh (ms). Set to 0 to disable.
       const AUTO_REFRESH_MS = 60_000; // 60s
-
       document.getElementById("backendLabel").textContent = API_BASE;
 
       // --- Helpers ---
@@ -64,31 +85,26 @@
         }
         return res.json();
       }
-
       function toJsNumber(value) {
         if (value === null || value === undefined) return NaN;
         const n = Number(value);
         return Number.isNaN(n) ? NaN : n;
       }
-
       function setStatus(msg, isError = false) {
         const el = document.getElementById("status");
         el.textContent = msg || "";
         el.className = isError ? "text-red-400" : "text-slate-400";
       }
 
-      // 🔧 FIX: normalize timestamps (prevents [object Object])
+      // 🔧 Normalize timestamps (prevents [object Object])
       function normalizeTimestamp(ts) {
         if (!ts) return "";
-
         if (typeof ts === "string") return ts;
         if (ts instanceof Date) return ts.toISOString();
-
         // Firestore / backend timestamp object
         if (typeof ts === "object" && "seconds" in ts) {
           return new Date(ts.seconds * 1000).toISOString();
         }
-
         return String(ts);
       }
 
@@ -108,21 +124,34 @@
         return locations;
       }
 
-      async function loadMeasurements(locationName) {
+      // UPDATED: accepts limit & attempts server-side limiting; falls back to client-side
+      async function loadMeasurements(locationName, limit) {
         setStatus(`Loading measurements for ${locationName}…`);
-        const rows = await getJSON(
-          `${API_BASE}/measurements?location=${encodeURIComponent(locationName)}`,
-        );
+        // Try passing ?limit= if backend supports it.
+        const url = `${API_BASE}/measurements?location=${encodeURIComponent(
+          locationName,
+        )}${limit ? `&limit=${encodeURIComponent(limit)}` : ""}`;
+
+        let rows = await getJSON(url);
+
+        // Fallback (client-side): keep the most recent N rows
+        if (
+          Array.isArray(rows) &&
+          Number.isFinite(limit) &&
+          rows.length > limit
+        ) {
+          // Assuming rows are chronological (oldest->newest). If unsure, sort by timestamp.
+          rows = rows.slice(-limit);
+        }
+
         setStatus(`Loaded ${rows.length} points for ${locationName}.`);
         return rows;
       }
 
       // --- Chart ---
       let chart = null;
-
       function drawChart(rows) {
         const labels = rows.map((r) => normalizeTimestamp(r.timestamp));
-
         const data = {
           temperature: rows.map((r) => toJsNumber(r.temperature)),
           humidity: rows.map((r) => toJsNumber(r.humidity)),
@@ -166,7 +195,6 @@
               color: "rgba(255,255,255,0.08)",
             },
           };
-
           if (key === "humidity") {
             scales[key].min = 0;
             scales[key].max = 100;
@@ -205,10 +233,12 @@
       // --- Orchestration ---
       async function reloadAll() {
         try {
-          const select = document.getElementById("locationSelect");
-          const locationName = select.value;
+          const locationSelect = document.getElementById("locationSelect");
+          const limitSelect = document.getElementById("limitSelect");
+          const locationName = locationSelect.value;
+          const limit = Number(limitSelect.value) || 25;
           if (!locationName) return;
-          const rows = await loadMeasurements(locationName);
+          const rows = await loadMeasurements(locationName, limit);
           drawChart(rows);
         } catch (err) {
           console.error(err);
@@ -219,9 +249,11 @@
       async function init() {
         try {
           const locations = await loadLocations();
-          const select = document.getElementById("locationSelect");
+          const locationSelect = document.getElementById("locationSelect");
+          const limitSelect = document.getElementById("limitSelect");
 
-          select.addEventListener("change", reloadAll);
+          locationSelect.addEventListener("change", reloadAll);
+          limitSelect.addEventListener("change", reloadAll);
           document
             .getElementById("refreshBtn")
             .addEventListener("click", reloadAll);
@@ -229,7 +261,6 @@
           if (locations.length) {
             await reloadAll();
           }
-
           if (AUTO_REFRESH_MS > 0) {
             setInterval(reloadAll, AUTO_REFRESH_MS);
           }
@@ -243,3 +274,4 @@
     </script>
   </body>
 </html>
+``
