@@ -114,7 +114,7 @@ class WeatherNeo4jService:
         result = tx.run(query, **data)
         return result.single()
     
-    def run(self, interval_minutes=10):
+    def run(self, interval_minutes=15):
         """Main loop - fetch and store data every N minutes"""
         logger.info(f"Starting weather service for {self.location_name}")
         logger.info(f"Fetching data every {interval_minutes} minutes")
@@ -143,6 +143,6 @@ class WeatherNeo4jService:
 if __name__ == "__main__":
     service = WeatherNeo4jService()
     try:
-        service.run(interval_minutes=10)
+        service.run(interval_minutes=15)
     finally:
         service.close()
