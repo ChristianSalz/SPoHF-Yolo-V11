@@ -10,18 +10,22 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copy requirements first for better caching
-COPY requirements.txt .
+COPY requirements. txt . 
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application files
 COPY Insect_Prediction_flask_api.py .
-COPY gunicorn_config.py .
+COPY gunicorn_config.py . 
 
 # Copy model directory
 COPY model/ /app/model/
+
+# Pre-warm the YOLO model to avoid runtime downloads
+# This prevents the model from downloading extra files on first run
+RUN python -c "from ultralytics import YOLO; YOLO('./model/last.pt')"
 
 # Expose port
 EXPOSE 7733
 
 # Run with gunicorn
-CMD ["gunicorn", "-c", "gunicorn_config.py", "Insect_Prediction_flask_api:app"]
+CMD ["gunicorn", "-c", "gunicorn_config. py", "Insect_Prediction_flask_api:app"]
