@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from PIL import Image
 import numpy as np
 import cv2
@@ -7,6 +8,7 @@ import io
 import base64
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 # Load model once at startup
 model = YOLO('./model/last.pt')
@@ -73,4 +75,4 @@ def predict():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=7733)

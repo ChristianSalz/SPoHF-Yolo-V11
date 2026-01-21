@@ -4,10 +4,10 @@ import multiprocessing
 bind = "0.0.0.0:7733"
 
 # Worker processes
-workers = 2
+workers = 1
 worker_class = "sync"
-worker_connections = 1000
-timeout = 120
+worker_connections = 100
+timeout = 300
 
 # Logging
 accesslog = "-"

@@ -14,7 +14,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application files
-COPY Insect-Prediction-flask_api.py .
+COPY Insect_Prediction_flask_api.py .
 COPY gunicorn_config.py .
 
 # Copy model directory
@@ -24,4 +24,4 @@ COPY model/ /app/model/
 EXPOSE 7733
 
 # Run with gunicorn
-CMD ["gunicorn", "-c", "gunicorn_config.py", "Insect-Prediction-flask_api:app"]
+CMD ["gunicorn", "-c", "gunicorn_config.py", "Insect_Prediction_flask_api:app"]
