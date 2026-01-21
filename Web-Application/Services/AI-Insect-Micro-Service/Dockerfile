@@ -1,27 +1,26 @@
 FROM python:3.13-slim
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1 \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
 WORKDIR /app
 
-# Copy requirements first for better caching
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy requirements
+COPY requirements.txt .  
 
-# Copy application files
-COPY Insect_Prediction_flask_api.py .
-COPY gunicorn_config.py .
+# Install CPU-only PyTorch FIRST (before ultralytics)
+RUN pip install --no-cache-dir torch==2.1.0 torchvision==0.16.0 --index-url https://download.pytorch.org/whl/cpu
 
-# Copy model directory
+# Then install other requirements
+RUN pip install --no-cache-dir --disable-pip-version-check -r requirements.txt
+
+COPY Insect_Prediction_flask_api.py .  
+COPY gunicorn_config.py .  
+
 COPY model/ /app/model/
 
-# Expose port
 EXPOSE 7733
 
-# Run with gunicorn
-CMD ["gunicorn", "-c", "gunicorn_config.py", "Insect_Prediction_flask_api:app"]
+CMD ["gunicorn", "-c", "gunicorn_config. py", "Insect_Prediction_flask_api:app"]
