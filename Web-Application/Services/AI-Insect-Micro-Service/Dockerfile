@@ -10,8 +10,8 @@ WORKDIR /app
 # Copy requirements
 COPY requirements.txt .  
 
-# Install CPU-only PyTorch FIRST (before ultralytics)
-RUN pip install --no-cache-dir torch==2.1.0 torchvision==0.16.0 --index-url https://download.pytorch.org/whl/cpu
+# Install CPU-only PyTorch FIRST (before ultralytics) - NEWEST VERSIONS
+RUN pip install --no-cache-dir torch==2.10.0 torchvision==0.18.0 --index-url https://download.pytorch.org/whl/cpu
 
 # Then install other requirements
 RUN pip install --no-cache-dir --disable-pip-version-check -r requirements.txt
