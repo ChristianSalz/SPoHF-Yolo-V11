@@ -1,7 +1,6 @@
 flask
 flask-cors
 gunicorn
-ultralytics
 opencv-python-headless
 pillow
 numpy
