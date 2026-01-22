@@ -23,6 +23,6 @@ COPY gunicorn_config.py .
 
 COPY model/ /app/model/
 
-EXPOSE 7733
+EXPOSE ${PORT}
 
 CMD ["gunicorn", "-c", "gunicorn_config.py", "Insect_Prediction_flask_api:app"]
