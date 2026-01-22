@@ -2,7 +2,6 @@
 import os
 import time
 import requests
-from datetime import datetime
 from neo4j import GraphDatabase
 import logging
 
@@ -17,21 +16,21 @@ class WeatherNeo4jService:
         self.neo4j_password = os.getenv('NEO4J_PASSWORD')
         self.neo4j_database = os.getenv('NEO4J_DATABASE', 'neo4j')
 
-        # Company to link locations to
         self.company_name = os.getenv('COMPANY_NAME', 'Vitarom Gbr')
 
-        # Multiple locations supported
         self.locations = [
             {"name": "Neurath",  "latitude": 51.0447, "longitude": 6.6847},
             {"name": "Straelen", "latitude": 51.4410, "longitude": 6.2620},
         ]
 
-        self.driver = GraphDatabase.driver(self.neo4j_uri, auth=(self.neo4j_user, self.neo4j_password))
+        self.driver = GraphDatabase.driver(
+            self.neo4j_uri,
+            auth=(self.neo4j_user, self.neo4j_password)
+        )
 
         self.initialize_schema()
 
     def initialize_schema(self):
-        """Create constraints and indexes"""
         with self.driver.session(database=self.neo4j_database) as session:
             try:
                 session.run("""
@@ -44,22 +43,18 @@ class WeatherNeo4jService:
                 """)
                 logger.info("Schema initialized")
             except Exception as e:
-                logger.warning(f"Schema creation error (probably exists): {e}")
+                logger.warning(f"Schema creation error: {e}")
 
     # --------------------------------------------------------------------------
-    # WEATHER DATA
+    # WEATHER
     # --------------------------------------------------------------------------
     def fetch_weather_data(self, latitude: float, longitude: float, location_name: str):
-        """Fetch current weather from Open-Meteo"""
         try:
             url = "https://api.open-meteo.com/v1/forecast"
             params = {
                 "latitude": latitude,
                 "longitude": longitude,
-                "current": (
-                    "temperature_2m,relative_humidity_2m,precipitation,"
-                    "wind_speed_10m,pressure_msl"
-                ),
+                "current": "temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m,pressure_msl",
                 "timezone": "Europe/Berlin",
             }
             response = requests.get(url, params=params, timeout=15)
@@ -67,7 +62,7 @@ class WeatherNeo4jService:
             data = response.json()
             current = data.get('current', {})
 
-            return {
+            weather_data = {
                 'timestamp': current.get('time'),
                 'temperature': current.get('temperature_2m'),
                 'humidity': current.get('relative_humidity_2m'),
@@ -80,18 +75,20 @@ class WeatherNeo4jService:
                 'company': self.company_name,
             }
 
+            logger.info(f"[{location_name}] Fetched weather: {weather_data}")
+            return weather_data
+
         except Exception as e:
             logger.error(f"[{location_name}] Weather fetch error: {e}")
             return None
 
     def store_in_neo4j(self, weather_data: dict):
-        """Store weather snapshot"""
         if not weather_data:
             return
         try:
             with self.driver.session(database=self.neo4j_database) as session:
                 session.execute_write(self._create_weather_record, weather_data)
-                logger.info(f"Stored weather data for {weather_data['location']}")
+            logger.info(f"Stored weather data for {weather_data['location']}")
         except Exception as e:
             logger.error(f"Error storing weather: {e}")
 
@@ -105,7 +102,7 @@ class WeatherNeo4jService:
         MERGE (c)-[:HAS_LOCATION]->(l)
 
         CREATE (m:Measurement {
-            timestamp: datetime($timestamp),
+            timestamp: CASE WHEN $timestamp IS NULL THEN datetime() ELSE datetime($timestamp) END,
             temperature: $temperature,
             humidity: $humidity,
             precipitation: $precipitation,
@@ -118,46 +115,55 @@ class WeatherNeo4jService:
         return tx.run(query, **data).single()
 
     # --------------------------------------------------------------------------
-    # SOLAR DATA
+    # SOLAR (UV & Direct Radiation Only)
     # --------------------------------------------------------------------------
     def fetch_sun_data(self, latitude: float, longitude: float, location_name: str):
-        """Fetch solar-related data from Open-Meteo"""
+        """Fetch UV + Direct Radiation only."""
         try:
             url = "https://api.open-meteo.com/v1/forecast"
             params = {
                 "latitude": latitude,
                 "longitude": longitude,
-                "current": "uv_index,sunshine_duration,direct_radiation",
+                "current": "uv_index,direct_radiation",
                 "timezone": "Europe/Berlin",
             }
+
             response = requests.get(url, params=params, timeout=15)
             response.raise_for_status()
             data = response.json()
-            current = data.get('current', {})
+            current = data.get("current", {})
 
-            return {
-                'timestamp': current.get('time'),
-                'uv_index': current.get('uv_index'),
-                'sunshine_duration': current.get('sunshine_duration'),
-                'direct_radiation': current.get('direct_radiation'),
-                'location': location_name,
-                'latitude': latitude,
-                'longitude': longitude,
-                'company': self.company_name,
+            sun_data = {
+                "timestamp": current.get("time"),
+                "uv_index": current.get("uv_index"),
+                "direct_radiation": current.get("direct_radiation"),
+                "location": location_name,
+                "latitude": latitude,
+                "longitude": longitude,
+                "company": self.company_name,
             }
 
+            # Log always so we see if Solar was fetched
+            logger.info(f"[{location_name}] Fetched solar: {sun_data}")
+
+            # Skip invalid
+            if sun_data["timestamp"] is None:
+                logger.warning(f"[{location_name}] Solar missing timestamp -> not storing")
+                return None
+
+            return sun_data
+
         except Exception as e:
-            logger.error(f"[{location_name}] Solar data fetch error: {e}")
+            logger.error(f"[{location_name}] Solar fetch error: {e}")
             return None
 
     def store_sun_in_neo4j(self, sun_data: dict):
-        """Store solar snapshot"""
         if not sun_data:
             return
         try:
             with self.driver.session(database=self.neo4j_database) as session:
                 session.execute_write(self._create_sun_record, sun_data)
-                logger.info(f"Stored solar data for {sun_data['location']}")
+            logger.info(f"Stored solar data for {sun_data['location']}")
         except Exception as e:
             logger.error(f"Error storing solar data: {e}")
 
@@ -173,7 +179,6 @@ class WeatherNeo4jService:
         CREATE (sm:SunMeasurement {
             timestamp: datetime($timestamp),
             uv_index: $uv_index,
-            sunshine_duration: $sunshine_duration,
             direct_radiation: $direct_radiation
         })
         CREATE (l)-[:HAS_MEASUREMENT]->(sm)
@@ -187,7 +192,7 @@ class WeatherNeo4jService:
     def run(self, interval_minutes=15):
         logger.info(f"Starting for {self.company_name}")
         logger.info(f"Locations: {', '.join([l['name'] for l in self.locations])}")
-        logger.info(f"Fetch interval: {interval_minutes} minutes")
+        logger.info("VERSION: weather+solar enabled")
 
         while True:
             cycle_start = time.time()
@@ -195,27 +200,26 @@ class WeatherNeo4jService:
             try:
                 for loc in self.locations:
 
-                    # WEATHER DATA
+                    # WEATHER
                     wd = self.fetch_weather_data(
                         latitude=loc["latitude"],
                         longitude=loc["longitude"],
-                        location_name=loc["name"],
+                        location_name=loc["name"]
                     )
                     if wd:
                         self.store_in_neo4j(wd)
 
-                    # SOLAR DATA
+                    # SOLAR
                     sd = self.fetch_sun_data(
                         latitude=loc["latitude"],
                         longitude=loc["longitude"],
-                        location_name=loc["name"],
+                        location_name=loc["name"]
                     )
                     if sd:
                         self.store_sun_in_neo4j(sd)
 
-                # Wait until next cycle
                 elapsed = time.time() - cycle_start
-                wait = max(0.0, interval_minutes * 60 - elapsed)
+                wait = max(0, interval_minutes * 60 - elapsed)
                 logger.info(f"Waiting {int(wait)} seconds...")
                 time.sleep(wait)
 
@@ -238,4 +242,3 @@ if __name__ == "__main__":
         service.run(interval_minutes=15)
     finally:
         service.close()
-
