@@ -13,7 +13,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir torch==2.10.0 torchvision==0.25.0 --index-url https://download.pytorch.org/whl/cpu
 
 # Then install other requirements
-RUN pip install --no-cache-dir --disable-pip-version-check -r requirements. txt
+RUN pip install --no-cache-dir --disable-pip-version-check -r requirements.txt
 
 # Explicitly install ultralytics without optional dependencies (like CUDA)
 RUN pip install --no-cache-dir ultralytics==8.4.7 --no-deps
