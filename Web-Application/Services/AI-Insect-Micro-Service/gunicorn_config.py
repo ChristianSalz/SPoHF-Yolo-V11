@@ -1,7 +1,9 @@
 import multiprocessing
 
-# Server socket
-bind = "0.0.0.0:7733"
+import os
+
+bind = f"0.0.0.0:{os.environ.get('PORT', '7733')}"
+
 
 # Worker processes
 workers = 2

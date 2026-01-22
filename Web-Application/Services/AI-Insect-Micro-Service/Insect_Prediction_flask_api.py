@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from PIL import Image
 import numpy as np
+import os
 import cv2
 from ultralytics import YOLO
 import io
@@ -75,4 +76,5 @@ def predict():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=7733)
+    port = int(os.environ.get("PORT", 7733))
+    app.run(host="0.0.0.0", port=port)
