@@ -2,276 +2,150 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>SPoHF Measurements</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SPoHF Digital Twin 2026</title>
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
 
-  <body class="bg-[#020617] text-white font-sans m-0 p-0 h-screen w-screen">
-    <div class="flex flex-col h-screen w-screen">
-      <!-- Top bar -->
-      <div class="flex items-center justify-between px-4 py-2 gap-4">
-        <h2 class="font-medium text-xl">
-          SPoHF Data Graph, Company: Vitarom Gbr
-        </h2>
+  <body class="bg-[#020617] text-white font-sans min-h-screen">
+    <div class="min-h-screen flex flex-col">
+      <!-- Top Bar -->
+      <header
+      </header>
 
-        <div class="flex items-center gap-2">
-          <!-- Location picker (existing) -->
-          <label for="locationSelect" class="text-sm text-gray-300"
-            >Location</label
-          >
-          <select
-            id="locationSelect"
-            class="bg-slate-800 text-white px-3 py-2 rounded-lg border border-slate-600 focus:outline-none focus:border-blue-500"
-          >
-            <option>Loading…</option>
-          </select>
+      <!-- Main -->
+      <main class="flex-1 px-6 py-10">
+        <div class="max-w-5xl mx-auto">
+          <div class="mb-8">
+            <h2 class="text-3xl font-extrabold tracking-tight">
+              SPoHF Digital Twin Data Explorer
+            </h2>
+            <p class="mt-2 text-slate-400">
+              Use the buttons below to open the Data Graph dashboard or the AI
+              Insect Detection tool.
+            </p>
+          </div>
 
-          <!-- NEW: Limit picker -->
-          <label for="limitSelect" class="text-sm text-gray-300"
-            >Data Nodes</label
-          >
-          <select
-            id="limitSelect"
-            class="bg-slate-800 text-white px-3 py-2 rounded-lg border border-slate-600 focus:outline-none focus:border-blue-500"
-            title="How many latest measurements to load"
-          >
-            <!-- default = 25 -->
-            <option value="25" selected>25</option>
-            <option value="50">50</option>
-            <option value="100">100</option>
-            <option value="200">200</option>
-            <option value="500">500</option>
-          </select>
+          <!-- Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Data Graph -->
+            <a
+              href="data-graph.html"
+              class="group block rounded-xl border border-slate-800 hover:border-blue-500 transition overflow-hidden bg-slate-900/40 backdrop-blur"
+            >
+              <div class="p-6">
+                <div class="flex items-start justify-between gap-4">
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-2xl"></span>
+                      <h3 class="text-xl font-semibold">Data Graph</h3>
+                    </div>
+                    <p class="mt-2 text-slate-400">
+                      View SPoHF measurements and visualize data with charts
+                      (temperature, humidity, pressure, etc.).
+                    </p>
+                  </div>
 
-          <!-- Refresh (existing) -->
-          <button
-            id="refreshBtn"
-            class="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white px-3 py-2 rounded-md"
-            title="Reload data now"
-          >
-            Refresh
-          </button>
+                  <div
+                    class="shrink-0 h-10 w-10 rounded-xl bg-blue-600/20 flex items-center justify-center border border-blue-500/30"
+                  >
+                    <span
+                      class="text-blue-300 group-hover:text-blue-200 transition"
+                      >→</span
+                    >
+                  </div>
+                </div>
+
+                <div class="mt-5 flex flex-wrap gap-2">
+                  <span
+                    class="text-xs px-2 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700"
+                    >Chart.js</span
+                  >
+                  <span
+                    class="text-xs px-2 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700"
+                    >Locations</span
+                  >
+                  <span
+                    class="text-xs px-2 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700"
+                    >Auto refresh</span
+                  >
+                </div>
+              </div>
+              <div
+                class="h-1 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-70 group-hover:opacity-100 transition"
+              ></div>
+            </a>
+
+            <!-- AI Insect Detection -->
+            <a
+              href="ai-insect-detection.html"
+              class="group block rounded-xl border border-slate-800 hover:border-green-500 transition overflow-hidden bg-slate-900/40 backdrop-blur"
+            >
+              <div class="p-6">
+                <div class="flex items-start justify-between gap-4">
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-2xl"></span>
+                      <h3 class="text-xl font-semibold">AI Insect Detection</h3>
+                    </div>
+                    <p class="mt-2 text-slate-400">
+                      Upload an image and detect insects using your
+                      Railway-hosted AI model. Returns annotations + count.
+                    </p>
+                  </div>
+
+                  <div
+                    class="shrink-0 h-10 w-10 rounded-xl bg-green-600/20 flex items-center justify-center border border-green-500/30"
+                  >
+                    <span
+                      class="text-green-300 group-hover:text-green-200 transition"
+                      >→</span
+                    >
+                  </div>
+                </div>
+
+                <div class="mt-5 flex flex-wrap gap-2">
+                  <span
+                    class="text-xs px-2 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700"
+                    >YOLO</span
+                  >
+                  <span
+                    class="text-xs px-2 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700"
+                    >Image upload</span
+                  >
+                  <span
+                    class="text-xs px-2 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700"
+                    >Annotated output</span
+                  >
+                </div>
+              </div>
+
+              <div
+                class="h-1 bg-gradient-to-r from-green-600 to-emerald-500 opacity-70 group-hover:opacity-100 transition"
+              ></div>
+            </a>
+          </div>
+
+          <!-- Tip -->
+          <div class="mt-10 text-sm text-slate-400">
+            <span class="font-mono text-slate-300">More to come soon...</span> 
+          </div>
         </div>
-      </div>
+      </main>
 
-      <div class="px-4 -mt-2 text-xs text-slate-400">
-        Backend: <span id="backendLabel" class="font-mono"></span>
-        <span id="status" class="ml-3"></span>
-      </div>
-
-      <div class="flex-1 p-4">
-        <canvas id="chart" class="w-full h-full"></canvas>
-      </div>
+      <!-- Footer -->
+      <footer
+        class="px-6 py-8 border-t border-slate-800 text-center text-sm text-slate-400"
+      >
+        <div class="max-w-5xl mx-auto">
+          <p>
+            Developed by Mr. Salz in consultation with Mr. Tange @ Fontys Venlo
+            Informatica with ❤️
+          </p>
+        </div>
+      </footer>
     </div>
-
-    <script>
-      // === Configure your backend URL here ===
-      const API_BASE = "https://spohf-yolo-v11-production.up.railway.app";
-      // Optional: auto-refresh (ms). Set to 0 to disable.
-      const AUTO_REFRESH_MS = 60_000; // 60s
-      document.getElementById("backendLabel").textContent = API_BASE;
-
-      // --- Helpers ---
-      async function getJSON(url) {
-        const res = await fetch(url);
-        if (!res.ok) {
-          const text = await res.text().catch(() => "");
-          throw new Error(`${res.status} ${res.statusText}: ${text || url}`);
-        }
-        return res.json();
-      }
-      function toJsNumber(value) {
-        if (value === null || value === undefined) return NaN;
-        const n = Number(value);
-        return Number.isNaN(n) ? NaN : n;
-      }
-      function setStatus(msg, isError = false) {
-        const el = document.getElementById("status");
-        el.textContent = msg || "";
-        el.className = isError ? "text-red-400" : "text-slate-400";
-      }
-
-      // 🔧 Normalize timestamps (prevents [object Object])
-      function normalizeTimestamp(ts) {
-        if (!ts) return "";
-        if (typeof ts === "string") return ts;
-        if (ts instanceof Date) return ts.toISOString();
-        // Firestore / backend timestamp object
-        if (typeof ts === "object" && "seconds" in ts) {
-          return new Date(ts.seconds * 1000).toISOString();
-        }
-        return String(ts);
-      }
-
-      // --- Data loading from backend ---
-      async function loadLocations() {
-        setStatus("Loading locations…");
-        const locations = await getJSON(`${API_BASE}/locations`);
-        const select = document.getElementById("locationSelect");
-        select.innerHTML = "";
-        locations.forEach((name) => {
-          const opt = document.createElement("option");
-          opt.value = name;
-          opt.textContent = name;
-          select.appendChild(opt);
-        });
-        setStatus(`Loaded ${locations.length} location(s).`);
-        return locations;
-      }
-
-      // UPDATED: accepts limit & attempts server-side limiting; falls back to client-side
-      async function loadMeasurements(locationName, limit) {
-        setStatus(`Loading measurements for ${locationName}…`);
-        // Try passing ?limit= if backend supports it.
-        const url = `${API_BASE}/measurements?location=${encodeURIComponent(
-          locationName,
-        )}${limit ? `&limit=${encodeURIComponent(limit)}` : ""}`;
-
-        let rows = await getJSON(url);
-
-        // Fallback (client-side): keep the most recent N rows
-        if (
-          Array.isArray(rows) &&
-          Number.isFinite(limit) &&
-          rows.length > limit
-        ) {
-          // Assuming rows are chronological (oldest->newest). If unsure, sort by timestamp.
-          rows = rows.slice(-limit);
-        }
-
-        setStatus(`Loaded ${rows.length} points for ${locationName}.`);
-        return rows;
-      }
-
-      // --- Chart ---
-      let chart = null;
-      function drawChart(rows) {
-        const labels = rows.map((r) => normalizeTimestamp(r.timestamp));
-        const data = {
-          temperature: rows.map((r) => toJsNumber(r.temperature)),
-          humidity: rows.map((r) => toJsNumber(r.humidity)),
-          pressure: rows.map((r) => toJsNumber(r.pressure)),
-          precipitation: rows.map((r) => toJsNumber(r.precipitation)),
-          wind_speed: rows.map((r) => toJsNumber(r.wind_speed)),
-        };
-
-        const colors = {
-          temperature: "rgb(239, 68, 68)",
-          humidity: "rgb(59, 130, 246)",
-          pressure: "rgb(34, 197, 94)",
-          precipitation: "rgb(168, 85, 247)",
-          wind_speed: "rgb(245, 158, 11)",
-        };
-
-        const datasets = Object.keys(data).map((key) => ({
-          label: key.charAt(0).toUpperCase() + key.slice(1),
-          data: data[key],
-          borderColor: colors[key],
-          tension: 0.25,
-          pointRadius: 0,
-          spanGaps: true,
-          yAxisID: key,
-        }));
-
-        const scales = {};
-        Object.keys(data).forEach((key) => {
-          scales[key] = {
-            type: "linear",
-            position:
-              key === "temperature" || key === "pressure" ? "left" : "right",
-            ticks: { color: "#9ca3af" },
-            title: {
-              display: true,
-              text: key.charAt(0).toUpperCase() + key.slice(1),
-              color: "#e5e7eb",
-            },
-            grid: {
-              drawOnChartArea: key === "temperature",
-              color: "rgba(255,255,255,0.08)",
-            },
-          };
-          if (key === "humidity") {
-            scales[key].min = 0;
-            scales[key].max = 100;
-          } else if (key === "precipitation" || key === "wind_speed") {
-            scales[key].min = 0;
-          }
-        });
-
-        const el = document.getElementById("chart");
-        if (chart) chart.destroy();
-        chart = new Chart(el, {
-          type: "line",
-          data: { labels, datasets },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { mode: "index", intersect: false },
-            plugins: {
-              legend: { labels: { color: "#e5e7eb" } },
-              tooltip: {
-                callbacks: {
-                  label: (ctx) => {
-                    const v = ctx.parsed.y;
-                    if (v === null || Number.isNaN(v))
-                      return `${ctx.dataset.label}: —`;
-                    return `${ctx.dataset.label}: ${v}`;
-                  },
-                },
-              },
-            },
-            scales,
-          },
-        });
-      }
-
-      // --- Orchestration ---
-      async function reloadAll() {
-        try {
-          const locationSelect = document.getElementById("locationSelect");
-          const limitSelect = document.getElementById("limitSelect");
-          const locationName = locationSelect.value;
-          const limit = Number(limitSelect.value) || 25;
-          if (!locationName) return;
-          const rows = await loadMeasurements(locationName, limit);
-          drawChart(rows);
-        } catch (err) {
-          console.error(err);
-          setStatus(err.message || "Failed to load", true);
-        }
-      }
-
-      async function init() {
-        try {
-          const locations = await loadLocations();
-          const locationSelect = document.getElementById("locationSelect");
-          const limitSelect = document.getElementById("limitSelect");
-
-          locationSelect.addEventListener("change", reloadAll);
-          limitSelect.addEventListener("change", reloadAll);
-          document
-            .getElementById("refreshBtn")
-            .addEventListener("click", reloadAll);
-
-          if (locations.length) {
-            await reloadAll();
-          }
-          if (AUTO_REFRESH_MS > 0) {
-            setInterval(reloadAll, AUTO_REFRESH_MS);
-          }
-        } catch (err) {
-          console.error(err);
-          setStatus(err.message || "Failed to initialize", true);
-        }
-      }
-
-      init();
-    </script>
   </body>
 </html>
-``
