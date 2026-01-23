@@ -73,7 +73,7 @@
       // === Configure your backend URL here ===
       const API_BASE = "https://spohf-yolo-v11-production.up.railway.app";
       // Optional: auto-refresh (ms). Set to 0 to disable.
-      const AUTO_REFRESH_MS = 60_000; // 60s
+      const AUTO_REFRESH_MS = 900_000; // 60s
       document.getElementById("backendLabel").textContent = API_BASE;
 
       // --- Helpers ---
@@ -153,9 +153,15 @@
           soil_temp_0cm: rows.map((r) => toJsNumber(r.soil_temp_0cm)),
           soil_temp_6cm: rows.map((r) => toJsNumber(r.soil_temp_6cm)),
           soil_temp_18cm: rows.map((r) => toJsNumber(r.soil_temp_18cm)),
-          soil_moisture_0_1cm: rows.map((r) => toJsNumber(r.soil_moisture_0_1cm)),
-          soil_moisture_1_3cm: rows.map((r) => toJsNumber(r.soil_moisture_1_3cm)),
-          soil_moisture_3_9cm: rows.map((r) => toJsNumber(r.soil_moisture_3_9cm)),
+          soil_moisture_0_1cm: rows.map((r) =>
+            toJsNumber(r.soil_moisture_0_1cm),
+          ),
+          soil_moisture_1_3cm: rows.map((r) =>
+            toJsNumber(r.soil_moisture_1_3cm),
+          ),
+          soil_moisture_3_9cm: rows.map((r) =>
+            toJsNumber(r.soil_moisture_3_9cm),
+          ),
         };
 
         const colors = {
@@ -186,7 +192,8 @@
             ticks: { color: "#9ca3af" },
             title: {
               display: true,
-              text: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, " "),
+              text:
+                key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, " "),
               color: "#e5e7eb",
             },
             grid: {
