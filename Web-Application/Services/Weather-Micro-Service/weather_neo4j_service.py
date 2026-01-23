@@ -1,4 +1,3 @@
-
 import os
 import time
 import requests
@@ -146,11 +145,6 @@ class WeatherNeo4jService:
             # Log always so we see if Solar was fetched
             logger.info(f"[{location_name}] Fetched solar: {sun_data}")
 
-            # Skip invalid
-            if sun_data["timestamp"] is None:
-                logger.warning(f"[{location_name}] Solar missing timestamp -> not storing")
-                return None
-
             return sun_data
 
         except Exception as e:
@@ -177,7 +171,7 @@ class WeatherNeo4jService:
         MERGE (c)-[:HAS_LOCATION]->(l)
 
         CREATE (sm:SunMeasurement {
-            timestamp: datetime($timestamp),
+            timestamp: CASE WHEN $timestamp IS NULL THEN datetime() ELSE datetime($timestamp) END,
             uv_index: $uv_index,
             direct_radiation: $direct_radiation
         })
