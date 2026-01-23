@@ -180,12 +180,86 @@ class WeatherNeo4jService:
         return tx.run(query, **data).single()
 
     # --------------------------------------------------------------------------
+    # SOIL
+    # --------------------------------------------------------------------------
+    def fetch_soil_data(self, latitude: float, longitude: float, location_name: str):
+        """Fetch soil temperature and moisture data."""
+        try:
+            url = "https://api.open-meteo.com/v1/forecast"
+            params = {
+                "latitude": latitude,
+                "longitude": longitude,
+                "current": "soil_temperature_0cm,soil_temperature_6cm,soil_temperature_18cm,soil_moisture_0_1cm,soil_moisture_1_3cm,soil_moisture_3_9cm",
+                "timezone": "Europe/Berlin",
+            }
+
+            response = requests.get(url, params=params, timeout=15)
+            response.raise_for_status()
+            data = response.json()
+            current = data.get("current", {})
+
+            soil_data = {
+                "timestamp": current.get("time"),
+                "soil_temp_0cm": current.get("soil_temperature_0cm"),
+                "soil_temp_6cm": current.get("soil_temperature_6cm"),
+                "soil_temp_18cm": current.get("soil_temperature_18cm"),
+                "soil_moisture_0_1cm": current.get("soil_moisture_0_1cm"),
+                "soil_moisture_1_3cm": current.get("soil_moisture_1_3cm"),
+                "soil_moisture_3_9cm": current.get("soil_moisture_3_9cm"),
+                "location": location_name,
+                "latitude": latitude,
+                "longitude": longitude,
+                "company": self.company_name,
+            }
+
+            logger.info(f"[{location_name}] Fetched soil: {soil_data}")
+
+            return soil_data
+
+        except Exception as e:
+            logger.error(f"[{location_name}] Soil fetch error: {e}")
+            return None
+
+    def store_soil_in_neo4j(self, soil_data: dict):
+        if not soil_data:
+            return
+        try:
+            with self.driver.session(database=self.neo4j_database) as session:
+                session.execute_write(self._create_soil_record, soil_data)
+            logger.info(f"Stored soil data for {soil_data['location']}")
+        except Exception as e:
+            logger.error(f"Error storing soil data: {e}")
+
+    @staticmethod
+    def _create_soil_record(tx, data: dict):
+        query = """
+        MERGE (c:Company {name: $company})
+        MERGE (l:Location {name: $location})
+          ON CREATE SET l.latitude = $latitude, l.longitude = $longitude
+          ON MATCH  SET l.latitude = $latitude, l.longitude = $longitude
+        MERGE (c)-[:HAS_LOCATION]->(l)
+
+        CREATE (sm:SoilMeasurement {
+            timestamp: CASE WHEN $timestamp IS NULL THEN datetime() ELSE datetime($timestamp) END,
+            soil_temp_0cm: $soil_temp_0cm,
+            soil_temp_6cm: $soil_temp_6cm,
+            soil_temp_18cm: $soil_temp_18cm,
+            soil_moisture_0_1cm: $soil_moisture_0_1cm,
+            soil_moisture_1_3cm: $soil_moisture_1_3cm,
+            soil_moisture_3_9cm: $soil_moisture_3_9cm
+        })
+        CREATE (l)-[:HAS_MEASUREMENT]->(sm)
+        RETURN sm
+        """
+        return tx.run(query, **data).single()
+
+    # --------------------------------------------------------------------------
     # MAIN LOOP
     # --------------------------------------------------------------------------
     def run(self, interval_minutes=15):
         logger.info(f"Starting for {self.company_name}")
         logger.info(f"Locations: {', '.join([l['name'] for l in self.locations])}")
-        logger.info("VERSION: weather+solar enabled")
+        logger.info("VERSION: weather+solar+soil enabled")
 
         while True:
             cycle_start = time.time()
@@ -210,6 +284,15 @@ class WeatherNeo4jService:
                     )
                     if sd:
                         self.store_sun_in_neo4j(sd)
+
+                    # SOIL
+                    soil = self.fetch_soil_data(
+                        latitude=loc["latitude"],
+                        longitude=loc["longitude"],
+                        location_name=loc["name"]
+                    )
+                    if soil:
+                        self.store_soil_in_neo4j(soil)
 
                 elapsed = time.time() - cycle_start
                 wait = max(0, interval_minutes * 60 - elapsed)
