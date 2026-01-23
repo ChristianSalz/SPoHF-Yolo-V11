@@ -119,6 +119,8 @@ class WeatherNeo4jService:
     def fetch_sun_data(self, latitude: float, longitude: float, location_name: str):
         """Fetch UV + Direct Radiation only."""
         try:
+            logger.info(f"[{location_name}] Starting sun data fetch...")
+            
             url = "https://api.open-meteo.com/v1/forecast"
             params = {
                 "latitude": latitude,
@@ -127,10 +129,18 @@ class WeatherNeo4jService:
                 "timezone": "Europe/Berlin",
             }
 
+            logger.info(f"[{location_name}] API Request params: {params}")
+            
             response = requests.get(url, params=params, timeout=15)
             response.raise_for_status()
+            
+            logger.info(f"[{location_name}] API Response status: {response.status_code}")
+            
             data = response.json()
+            logger.info(f"[{location_name}] Raw API response: {data}")
+            
             current = data.get("current", {})
+            logger.info(f"[{location_name}] Current data extracted: {current}")
 
             sun_data = {
                 "timestamp": current.get("time"),
@@ -142,24 +152,30 @@ class WeatherNeo4jService:
                 "company": self.company_name,
             }
 
-            # Log always so we see if Solar was fetched
-            logger.info(f"[{location_name}] Fetched solar: {sun_data}")
+            logger.info(f"[{location_name}] Formatted sun_data: {sun_data}")
+            logger.info(f"[{location_name}] Timestamp value: {sun_data['timestamp']} (type: {type(sun_data['timestamp'])})")
+            logger.info(f"[{location_name}] UV Index: {sun_data['uv_index']}")
+            logger.info(f"[{location_name}] Direct Radiation: {sun_data['direct_radiation']}")
 
             return sun_data
 
         except Exception as e:
-            logger.error(f"[{location_name}] Solar fetch error: {e}")
+            logger.error(f"[{location_name}] Solar fetch error: {e}", exc_info=True)
             return None
 
     def store_sun_in_neo4j(self, sun_data: dict):
         if not sun_data:
+            logger.warning("sun_data is None or empty, skipping storage")
             return
+        
+        logger.info(f"[{sun_data['location']}] Attempting to store solar data...")
+        
         try:
             with self.driver.session(database=self.neo4j_database) as session:
-                session.execute_write(self._create_sun_record, sun_data)
-            logger.info(f"Stored solar data for {sun_data['location']}")
+                result = session.execute_write(self._create_sun_record, sun_data)
+                logger.info(f"[{sun_data['location']}] Stored solar data successfully: {result}")
         except Exception as e:
-            logger.error(f"Error storing solar data: {e}")
+            logger.error(f"[{sun_data['location']}] Error storing solar data: {e}", exc_info=True)
 
     @staticmethod
     def _create_sun_record(tx, data: dict):
@@ -178,7 +194,10 @@ class WeatherNeo4jService:
         CREATE (l)-[:HAS_MEASUREMENT]->(sm)
         RETURN sm
         """
-        return tx.run(query, **data).single()
+        logger.info(f"Executing Neo4j query with data: {data}")
+        result = tx.run(query, **data).single()
+        logger.info(f"Neo4j query result: {result}")
+        return result
 
     # --------------------------------------------------------------------------
     # MAIN LOOP
@@ -195,6 +214,10 @@ class WeatherNeo4jService:
                 for loc in self.locations:
 
                     # WEATHER
+                    logger.info(f"\n{'='*60}")
+                    logger.info(f"FETCHING WEATHER FOR: {loc['name']}")
+                    logger.info(f"{'='*60}")
+                    
                     wd = self.fetch_weather_data(
                         latitude=loc["latitude"],
                         longitude=loc["longitude"],
@@ -202,19 +225,28 @@ class WeatherNeo4jService:
                     )
                     if wd:
                         self.store_in_neo4j(wd)
+                    else:
+                        logger.warning(f"Weather data fetch returned None for {loc['name']}")
 
                     # SOLAR
+                    logger.info(f"\n{'='*60}")
+                    logger.info(f"FETCHING SOLAR DATA FOR: {loc['name']}")
+                    logger.info(f"{'='*60}")
+                    
                     sd = self.fetch_sun_data(
                         latitude=loc["latitude"],
                         longitude=loc["longitude"],
                         location_name=loc["name"]
                     )
                     if sd:
+                        logger.info(f"Solar data ready, storing for {loc['name']}...")
                         self.store_sun_in_neo4j(sd)
+                    else:
+                        logger.warning(f"Solar data fetch returned None for {loc['name']}")
 
                 elapsed = time.time() - cycle_start
                 wait = max(0, interval_minutes * 60 - elapsed)
-                logger.info(f"Waiting {int(wait)} seconds...")
+                logger.info(f"\nWaiting {int(wait)} seconds...")
                 time.sleep(wait)
 
             except KeyboardInterrupt:
@@ -222,7 +254,7 @@ class WeatherNeo4jService:
                 break
 
             except Exception as e:
-                logger.error(f"Loop error: {e}")
+                logger.error(f"Loop error: {e}", exc_info=True)
                 time.sleep(60)
 
     def close(self):
