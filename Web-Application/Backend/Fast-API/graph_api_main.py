@@ -54,6 +54,36 @@ def get_measurements(location: str, limit: int = 25):
             })
         return list(reversed(out))
 
+@app.get("/soil-measurements")
+def get_soil_measurements(location: str, limit: int = 25):
+    with driver.session() as session:
+        res = session.run("""
+            MATCH (l:Location {name:$loc})-[:HAS_MEASUREMENT]->(soil:SoilMeasurement)
+            RETURN
+              toString(soil.timestamp) AS timestamp,
+              soil.soil_temp_0cm AS soil_temp_0cm,
+              soil.soil_temp_6cm AS soil_temp_6cm,
+              soil.soil_temp_18cm AS soil_temp_18cm,
+              soil.soil_moisture_0_1cm AS soil_moisture_0_1cm,
+              soil.soil_moisture_1_3cm AS soil_moisture_1_3cm,
+              soil.soil_moisture_3_9cm AS soil_moisture_3_9cm
+            ORDER BY soil.timestamp DESC
+            LIMIT $lim
+        """, loc=location, lim=limit)
+
+        out = []
+        for r in res:
+            out.append({
+                "timestamp": r["timestamp"],
+                "soil_temp_0cm": r["soil_temp_0cm"],
+                "soil_temp_6cm": r["soil_temp_6cm"],
+                "soil_temp_18cm": r["soil_temp_18cm"],
+                "soil_moisture_0_1cm": r["soil_moisture_0_1cm"],
+                "soil_moisture_1_3cm": r["soil_moisture_1_3cm"],
+                "soil_moisture_3_9cm": r["soil_moisture_3_9cm"],
+            })
+        return list(reversed(out))
+
 @app.get("/solar-measurements")
 def get_solar_measurements(location: str, limit: int = 25):
     with driver.session() as session:
@@ -75,3 +105,5 @@ def get_solar_measurements(location: str, limit: int = 25):
                 "direct_radiation": r["direct_radiation"],
             })
         return list(reversed(out))
+    
+    
