@@ -38,8 +38,8 @@ def get_measurements(location: str, limit: int = 25):
               m.pressure             AS pressure,
               m.precipitation        AS precipitation,
               m.wind_speed           AS wind_speed
-            ORDER BY m.timestamp
-            SKIP max(0, size(collect(m)) - $lim)
+            ORDER BY m.timestamp DESC
+            LIMIT $lim
         """, loc=location, lim=limit)
 
         out = []
@@ -52,7 +52,7 @@ def get_measurements(location: str, limit: int = 25):
                 "precipitation": r["precipitation"],
                 "wind_speed": r["wind_speed"],
             })
-        return out
+        return list(reversed(out))
 
 @app.get("/solar-measurements")
 def get_solar_measurements(location: str, limit: int = 25):
@@ -63,8 +63,8 @@ def get_solar_measurements(location: str, limit: int = 25):
               toString(sm.timestamp) AS timestamp,
               sm.uv_index            AS uv_index,
               sm.direct_radiation    AS direct_radiation
-            ORDER BY sm.timestamp
-            SKIP max(0, size(collect(sm)) - $lim)
+            ORDER BY sm.timestamp DESC
+            LIMIT $lim
         """, loc=location, lim=limit)
 
         out = []
@@ -74,4 +74,4 @@ def get_solar_measurements(location: str, limit: int = 25):
                 "uv_index": r["uv_index"],
                 "direct_radiation": r["direct_radiation"],
             })
-        return out
+        return list(reversed(out))
