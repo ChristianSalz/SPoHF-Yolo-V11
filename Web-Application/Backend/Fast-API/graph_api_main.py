@@ -1,4 +1,3 @@
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from neo4j import GraphDatabase
@@ -28,28 +27,51 @@ def get_locations():
         return [r["name"] for r in res]
 
 @app.get("/measurements")
-def get_measurements(location: str):
+def get_measurements(location: str, limit: int = 25):
     with driver.session() as session:
         res = session.run("""
             MATCH (l:Location {name:$loc})-[:HAS_MEASUREMENT]->(m:Measurement)
             RETURN
-              toString(m.timestamp) AS timestamp,   // <-- string now
+              toString(m.timestamp) AS timestamp,
               m.temperature          AS temperature,
               m.humidity             AS humidity,
               m.pressure             AS pressure,
               m.precipitation        AS precipitation,
               m.wind_speed           AS wind_speed
             ORDER BY m.timestamp
-        """, loc=location)
+            SKIP max(0, size(collect(m)) - $lim)
+        """, loc=location, lim=limit)
 
         out = []
         for r in res:
             out.append({
-                "timestamp": r["timestamp"],                 # already a string
+                "timestamp": r["timestamp"],
                 "temperature": r["temperature"],
                 "humidity": r["humidity"],
                 "pressure": r["pressure"],
                 "precipitation": r["precipitation"],
                 "wind_speed": r["wind_speed"],
+            })
+        return out
+
+@app.get("/solar-measurements")
+def get_solar_measurements(location: str, limit: int = 25):
+    with driver.session() as session:
+        res = session.run("""
+            MATCH (l:Location {name:$loc})-[:HAS_MEASUREMENT]->(sm:SunMeasurement)
+            RETURN
+              toString(sm.timestamp) AS timestamp,
+              sm.uv_index            AS uv_index,
+              sm.direct_radiation    AS direct_radiation
+            ORDER BY sm.timestamp
+            SKIP max(0, size(collect(sm)) - $lim)
+        """, loc=location, lim=limit)
+
+        out = []
+        for r in res:
+            out.append({
+                "timestamp": r["timestamp"],
+                "uv_index": r["uv_index"],
+                "direct_radiation": r["direct_radiation"],
             })
         return out
