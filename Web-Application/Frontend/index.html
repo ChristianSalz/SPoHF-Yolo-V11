@@ -7,6 +7,9 @@
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- ApexCharts Library -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@latest"></script>
   </head>
 
   <body class="bg-[#020617] text-white font-sans min-h-screen">
@@ -302,6 +305,143 @@
             </a>
           </div>
 
+          <!-- Live Gauge - Temperature & UV Index -->
+          <div class="mt-12 mb-10">
+            <h3 class="text-2xl font-bold mb-6 text-slate-200">
+              Live Conditions
+            </h3>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+              <!-- Temperature Gauge Card -->
+              <div
+                class="rounded-xl border border-slate-800 bg-slate-900/40 backdrop-blur p-8"
+              >
+                <div class="flex items-center justify-between mb-6">
+                  <h4 class="text-xl font-semibold">Temperature</h4>
+                  <select
+                    id="gaugeLocationSelect"
+                    class="bg-slate-800 text-white text-sm px-3 py-1 rounded border border-slate-600 focus:outline-none focus:border-blue-500"
+                  >
+                    <option>Loading...</option>
+                  </select>
+                </div>
+
+                <!-- ApexCharts Gauge -->
+                <div
+                  id="tempGaugeChart"
+                  class="w-full"
+                  style="height: 300px"
+                ></div>
+
+                <div class="text-center space-y-2 mt-4">
+                  <div class="text-sm text-slate-400" id="tempTime">
+                    Last Updated: --
+                  </div>
+                </div>
+
+                <!-- S-Logo Below -->
+                <div
+                  class="pt-4 border-t border-slate-700 w-full flex justify-center mt-6"
+                >
+                  <img
+                    src="Media-Pics/S-logo.png"
+                    alt="S Logo"
+                    class="w-20 h-auto object-contain"
+                  />
+                </div>
+              </div>
+
+              <!-- UV Index Gauge Card -->
+              <div
+                class="rounded-xl border border-slate-800 bg-slate-900/40 backdrop-blur p-8"
+              >
+                <div class="flex items-center justify-between mb-6">
+                  <h4 class="text-xl font-semibold">UV Index</h4>
+                  <span class="text-sm text-slate-400" id="uvStatus"
+                    >Loading...</span
+                  >
+                </div>
+
+                <!-- ApexCharts UV Gauge -->
+                <div
+                  id="uvGaugeChart"
+                  class="w-full"
+                  style="height: 300px"
+                ></div>
+
+                <div class="text-center space-y-2 mt-4">
+                  <div class="text-sm text-slate-400" id="uvTime">
+                    Last Updated: --
+                  </div>
+                </div>
+
+                <!-- S-Logo Below -->
+                <div
+                  class="pt-4 border-t border-slate-700 w-full flex justify-center mt-6"
+                >
+                  <img
+                    src="Media-Pics/RS-logo.png"
+                    alt="S Logo"
+                    class="w-20 h-auto object-contain"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- All Data Summary -->
+            <div
+              class="rounded-xl border border-slate-800 bg-slate-900/40 backdrop-blur p-8"
+            >
+              <h4 class="text-xl font-semibold mb-6">All Available Data</h4>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="p-4 bg-slate-800/40 rounded-lg">
+                  <p class="text-slate-400 text-sm mb-1">Humidity</p>
+                  <p class="text-2xl font-bold" id="allDataHumidity">--</p>
+                </div>
+
+                <div class="p-4 bg-slate-800/40 rounded-lg">
+                  <p class="text-slate-400 text-sm mb-1">Pressure</p>
+                  <p class="text-2xl font-bold" id="allDataPressure">--</p>
+                </div>
+
+                <div class="p-4 bg-slate-800/40 rounded-lg">
+                  <p class="text-slate-400 text-sm mb-1">Wind Speed</p>
+                  <p class="text-2xl font-bold" id="allDataWind">--</p>
+                </div>
+
+                <div class="p-4 bg-slate-800/40 rounded-lg">
+                  <p class="text-slate-400 text-sm mb-1">Precipitation</p>
+                  <p class="text-2xl font-bold" id="allDataPrecip">--</p>
+                </div>
+
+                <div class="p-4 bg-slate-800/40 rounded-lg">
+                  <p class="text-slate-400 text-sm mb-1">Direct Radiation</p>
+                  <p class="text-2xl font-bold" id="allDataRadiation">--</p>
+                </div>
+
+                <div class="p-4 bg-slate-800/40 rounded-lg">
+                  <p class="text-slate-400 text-sm mb-1">
+                    Soil Temperature (0 cm)
+                  </p>
+                  <p class="text-2xl font-bold" id="allDataSoilTemp0">--</p>
+                </div>
+
+                <div class="p-4 bg-slate-800/40 rounded-lg">
+                  <p class="text-slate-400 text-sm mb-1">
+                    Soil Moisture (0-1 cm)
+                  </p>
+                  <p class="text-2xl font-bold" id="allDataSoilMoisture">--</p>
+                </div>
+
+                <div class="p-4 bg-slate-800/40 rounded-lg">
+                  <p class="text-slate-400 text-sm mb-1">Last Updated</p>
+                  <p class="text-sm font-bold" id="allDataLastUpdate">--</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Tip -->
           <div class="mt-10 text-sm text-slate-400">
             <span class="font-mono text-slate-300"
@@ -327,5 +467,264 @@
         </div>
       </footer>
     </div>
+
+    <script>
+      const API_BASE = "https://spohf-yolo-v11-production.up.railway.app";
+      let tempChart;
+      let uvChart;
+
+      // Initialize Temperature Gauge
+      function initTempGauge() {
+        const options = {
+          series: [0],
+          chart: {
+            type: "radialBar",
+            sparkline: { enabled: false },
+            height: 300,
+            background: "transparent",
+          },
+          plotOptions: {
+            radialBar: {
+              startAngle: -90,
+              endAngle: 90,
+              track: {
+                background: "#333",
+                strokeWidth: "100%",
+                margin: 5,
+                dropShadow: { enabled: false },
+              },
+              dataLabels: {
+                name: {
+                  offsetY: -10,
+                  color: "#a3a3a3",
+                  fontSize: "16px",
+                },
+                value: {
+                  offsetY: 10,
+                  color: "#fbbf24",
+                  fontSize: "32px",
+                  fontWeight: "600",
+                  formatter: function (val) {
+                    return val.toFixed(1) + "°C";
+                  },
+                },
+              },
+              hollow: {
+                margin: 0,
+                size: "75%",
+                background: "transparent",
+                position: "front",
+              },
+            },
+          },
+          stroke: { lineCap: "round" },
+          colors: ["#fbbf24"],
+          labels: ["Temperature"],
+          states: {
+            normal: { filter: { type: "none", value: 0 } },
+            active: { filter: { type: "none", value: 0 } },
+            hover: { filter: { type: "none", value: 0 } },
+          },
+        };
+
+        tempChart = new ApexCharts(
+          document.querySelector("#tempGaugeChart"),
+          options,
+        );
+        tempChart.render();
+      }
+
+      // Initialize UV Index Gauge
+      function initUVGauge() {
+        const options = {
+          series: [0],
+          chart: {
+            type: "radialBar",
+            sparkline: { enabled: false },
+            height: 300,
+            background: "transparent",
+          },
+          plotOptions: {
+            radialBar: {
+              startAngle: -90,
+              endAngle: 90,
+              track: {
+                background: "#333",
+                strokeWidth: "100%",
+                margin: 5,
+                dropShadow: { enabled: false },
+              },
+              dataLabels: {
+                name: {
+                  offsetY: -10,
+                  color: "#a3a3a3",
+                  fontSize: "16px",
+                },
+                value: {
+                  offsetY: 10,
+                  color: "#fbbf24",
+                  fontSize: "32px",
+                  fontWeight: "600",
+                  formatter: function (val) {
+                    return val.toFixed(1);
+                  },
+                },
+              },
+              hollow: {
+                margin: 0,
+                size: "75%",
+                background: "transparent",
+                position: "front",
+              },
+            },
+          },
+          stroke: { lineCap: "round" },
+          colors: ["#fbbf24"],
+          labels: ["UV Index"],
+          states: {
+            normal: { filter: { type: "none", value: 0 } },
+            active: { filter: { type: "none", value: 0 } },
+            hover: { filter: { type: "none", value: 0 } },
+          },
+        };
+
+        uvChart = new ApexCharts(
+          document.querySelector("#uvGaugeChart"),
+          options,
+        );
+        uvChart.render();
+      }
+
+      // Load locations
+      async function loadGaugeLocations() {
+        try {
+          const locations = await fetch(`${API_BASE}/locations`).then((r) =>
+            r.json(),
+          );
+          const select = document.getElementById("gaugeLocationSelect");
+          select.innerHTML = "";
+          locations.forEach((name) => {
+            const opt = document.createElement("option");
+            opt.value = name;
+            opt.textContent = name;
+            select.appendChild(opt);
+          });
+
+          if (locations.length) {
+            select.value = locations[0];
+            await updateData();
+          }
+        } catch (err) {
+          console.error("Error loading locations:", err);
+        }
+      }
+
+      // Update all data
+      async function updateData() {
+        try {
+          const location = document.getElementById("gaugeLocationSelect").value;
+
+          // Get weather measurements
+          const weatherData = await fetch(
+            `${API_BASE}/measurements?location=${encodeURIComponent(location)}&limit=1`,
+          ).then((r) => r.json());
+
+          // Get soil measurements
+          const soilData = await fetch(
+            `${API_BASE}/soil-measurements?location=${encodeURIComponent(location)}&limit=1`,
+          ).then((r) => r.json());
+
+          // Get solar measurements
+          const solarData = await fetch(
+            `${API_BASE}/solar-measurements?location=${encodeURIComponent(location)}&limit=1`,
+          ).then((r) => r.json());
+
+          if (weatherData.length === 0) return;
+
+          const latest = weatherData[0];
+          const temp = parseFloat(latest.temperature) || 0;
+          const humidity = parseFloat(latest.humidity) || 0;
+          const pressure = parseFloat(latest.pressure) || 0;
+          const wind = parseFloat(latest.wind_speed) || 0;
+          const precip = parseFloat(latest.precipitation) || 0;
+
+          // Soil data - FIX: use correct field names from API
+          let soilTemp0 = "--";
+          let soilMoisture = "--";
+          if (soilData.length > 0) {
+            const soilLatest = soilData[0];
+            soilTemp0 = parseFloat(soilLatest.soil_temp_0cm) || 0;
+            soilMoisture = parseFloat(soilLatest.soil_moisture_0_1cm) || 0;
+          }
+
+          // Solar data - FIX: use correct field names from API
+          let uv = 0;
+          let radiation = 0;
+          if (solarData.length > 0) {
+            const solarLatest = solarData[0];
+            uv = parseFloat(solarLatest.uv_index) || 0;
+            radiation = parseFloat(solarLatest.direct_radiation) || 0;
+          }
+
+          // Update gauges
+          if (tempChart) tempChart.updateSeries([temp]);
+          if (uvChart) uvChart.updateSeries([uv]);
+
+          // Get UV status
+          let uvStatus = "Extreme";
+          if (uv < 3) uvStatus = "Low";
+          else if (uv < 6) uvStatus = "Moderate";
+          else if (uv < 8) uvStatus = "High";
+          else if (uv < 11) uvStatus = "Very High";
+
+          document.getElementById("uvStatus").textContent = uvStatus;
+
+          // Format timestamp
+          const ts = new Date(latest.timestamp);
+          const timeStr = ts.toLocaleString("de-DE");
+          document.getElementById("tempTime").textContent =
+            "Last Updated: " + timeStr;
+          document.getElementById("uvTime").textContent =
+            "Last Updated: " + timeStr;
+
+          // Update all data display
+          document.getElementById("allDataHumidity").textContent =
+            humidity.toFixed(1) + " %";
+          document.getElementById("allDataPressure").textContent =
+            pressure.toFixed(1) + " hPa";
+          document.getElementById("allDataWind").textContent =
+            wind.toFixed(1) + " m/s";
+          document.getElementById("allDataPrecip").textContent =
+            precip.toFixed(2) + " mm";
+          document.getElementById("allDataRadiation").textContent =
+            radiation.toFixed(2) + " W/m²";
+          document.getElementById("allDataSoilTemp0").textContent =
+            soilTemp0 === 0 && soilData.length === 0
+              ? "--"
+              : parseFloat(soilTemp0).toFixed(1) + " °C";
+          document.getElementById("allDataSoilMoisture").textContent =
+            soilMoisture === 0 && soilData.length === 0
+              ? "--"
+              : parseFloat(soilMoisture).toFixed(1) + " %";
+          document.getElementById("allDataLastUpdate").textContent = timeStr;
+        } catch (err) {
+          console.error("Error updating data:", err);
+        }
+      }
+
+      // Init
+      window.addEventListener("load", () => {
+        initTempGauge();
+        initUVGauge();
+        loadGaugeLocations();
+      });
+
+      document
+        .getElementById("gaugeLocationSelect")
+        .addEventListener("change", updateData);
+
+      // Auto-update every 15 minutes
+      setInterval(updateData, 900000);
+    </script>
   </body>
 </html>
