@@ -4,7 +4,7 @@ import cv2  # Required for color conversion
 from ultralytics import YOLO
 
 # Load the image and resize it to:
-image_path = './Manual-Test-Data/2.jpg'
+image_path = './Manual-Test-Data/1.jpg'
 image = Image.open(image_path)
 #image_resized = image.resize((640, 640))
 
@@ -15,7 +15,7 @@ model = YOLO('./runs/detect/train9/weights/last.pt')
 # Run inference on the resized image
 # conf=0.40 the minimum confidence for diplaying boundingboxes
 # iou=0.20 threshold value for the intersection over union, if you have cludded boxes (20% means if two boxes overlap by 20% only one will be drawn)
-results = model.predict(image, conf=0.40, iou=0.20)
+results = model.predict(image, conf=0.70, iou=0.20)
 
 # Display results with custom settings
 annotated_image = results[0].plot(labels=True, font_size=6, line_width=2)
