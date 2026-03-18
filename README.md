@@ -86,11 +86,11 @@ pip install -r requirements.txt
    The project includes a binary classification model that distinguishes between two insects species detected by YOLO.
 
    **Prerequisites:**
-   - You need labeled training data with two classes (e.g., `Musca domestica` and `Others`)
+   - You need labeled training data with two classes (e.g., `Muscidae` and `Others`)
    - Data should be organized in folders:
      ```
      Insect-Types-Classes/
-     ├── Musca domestica/
+     ├── Muscidae/
      │   ├── image1.jpg
      │   ├── image2.jpg
      │   └── ...
