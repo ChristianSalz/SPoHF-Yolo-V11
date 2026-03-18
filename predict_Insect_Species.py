@@ -3,9 +3,11 @@ import numpy as np
 import cv2
 from ultralytics import YOLO
 import tensorflow as tf
+from PIL import ImageFont
+import os
 
 # Load the image
-image_path = './Manual-Test-Data/2.jpg'
+image_path = './Manual-Test-Data/5.jpg'
 image = Image.open(image_path)
 
 # Convert to RGB if it has alpha channel (PNG)
@@ -44,10 +46,25 @@ class_counts = {
     'Others': 0
 }
 
-# Try to load a font (fallback to default if not available)
-try:
-    font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 20)
-except:
+# Load a font
+font_paths = [
+    "/System/Library/Fonts/Helvetica.ttc",  # macOS
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Linux (Debian/Ubuntu)
+    "/usr/share/fonts/dejavu/DejaVuSans.ttf",  # Linux (Fedora/RHEL)
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",  # Linux
+    "C:\\Windows\\Fonts\\arial.ttf",  # Windows
+]
+
+font = None
+for path in font_paths:
+    try:
+        font = ImageFont.truetype(path, 20)
+        break
+    except:
+        continue
+
+if font is None:
+    # Fallback: use default font (will be smaller than requested)
     font = ImageFont.load_default()
 
 # Process each detected insect
