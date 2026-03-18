@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc, confusion_matrix, classification_report
 import seaborn as sns
+import pandas as pd
 
 # Configuration
 data_dir = "./Insect-Types-Classes"
@@ -171,7 +172,6 @@ with open(os.path.join(metrics_dir, 'classification_report.txt'), 'w') as f:
 print(f"✓ Saved classification report")
 
 # 6. Save training history as CSV
-import pandas as pd
 history_df = pd.DataFrame(history.history)
 history_df.to_csv(os.path.join(metrics_dir, 'training_history.csv'), index=False)
 print(f"✓ Saved training history CSV")
