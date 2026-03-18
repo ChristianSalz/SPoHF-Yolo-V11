@@ -22,8 +22,12 @@ yolo_model = YOLO('./runs/detect/train9/weights/last.pt')
 # Load the Keras classification model
 classifier_model = tf.keras.models.load_model('./InsectClassificationModel/insect_classifier.keras')
 
+# Get prediction parameters from environment variables with defaults
+CONFIDENCE_THRESHOLD = float(os.getenv('CONFIDENCE_THRESHOLD', '0.50'))
+IOU_THRESHOLD = float(os.getenv('IOU_THRESHOLD', '0.20'))
+
 # Run YOLO inference to detect insects
-results = yolo_model.predict(image, conf=0.50, iou=0.20)
+results = yolo_model.predict(image, conf=CONFIDENCE_THRESHOLD, iou=IOU_THRESHOLD)
 
 detected_insects = results[0].boxes
 num_insects = len(detected_insects)
