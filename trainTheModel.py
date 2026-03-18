@@ -1,13 +1,22 @@
 from ultralytics import YOLO
 import torch
+import os
+from dotenv import load_dotenv
 
-# Define model and dataset paths
-model_path = "yolo11n.pt"  # You can use n, s, m , l  and XL depending on the needed complecity, a bigger modle needs more computational power
-data_path = './data.yaml'  # Path to your dataset YAML file
+# Load environment variables from .env file
+load_dotenv()
+
+# Get configuration from environment variables with fallback-defaults
+model_path = os.getenv('MODEL_PATH', 'yolo11n.pt')
+data_path = os.getenv('DATA_PATH', './data.yaml')
+epochs = int(os.getenv('EPOCHS', '150'))
+device = os.getenv('DEVICE', 'mps')
+imgsz = int(os.getenv('IMAGE_SIZE', '640'))
+patience = int(os.getenv('PATIENCE', '200'))
 
 # Load the YOLO model
 model = YOLO(model_path)
 
 # Train the model
-# device="mps" runs on Apple metal you can alos use device="CPU" or if you have a cuda card device="CUDA" you can also use device="AUTO" if you dont know hich GPU you have CUDA > MPS > CPU
-model.train(data=data_path, epochs=250, device="mps", imgsz=1024, patience=200)  
+print(f"Training with: epochs={epochs}, device={device}, imgsz={imgsz}, patience={patience}")
+model.train(data=data_path, epochs=epochs, device=device, imgsz=imgsz, patience=patience)

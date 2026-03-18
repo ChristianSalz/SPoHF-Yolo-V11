@@ -81,6 +81,43 @@ pip install -r requirements.txt
 
 8. Run the SPoHF-predict.py to test your model PS: update the path to your trained model - example (unseen) data is provided in the `Manual-Test-Data` folder
 
+9. Classification Model (Feature)
+
+   The project includes a binary classification model that distinguishes between two insects species detected by YOLO.
+
+   **Prerequisites:**
+   - You need labeled training data with two classes (e.g., `Muscidae` and `Others`)
+   - Data should be organized in folders:
+     ```
+     Insect-Types-Classes/
+     ├── Muscidae/
+     │   ├── image1.jpg
+     │   ├── image2.jpg
+     │   └── ...
+     └── Others/
+         ├── image1.jpg
+         ├── image2.jpg
+         └── ...
+     ```
+
+   Options:
+   - Use your own data: Create your own dataset with two custom insect categories
+   - Request data: Contact the repository owner to request the training dataset used in this project
+
+   **Training the classifier:**
+
+   ```bash
+   python TrainModelForInsectClassification.py
+   ```
+
+   **Using combined inference (YOLO + Classification):**
+
+After training, you can use `predict_Insect_Species.py` for combined inference that detects insects with YOLO and classifies each detection using the sigmoid classifier:
+
+```bash
+python predict_Insect_Species.py
+```
+
 # Installation Instructions (Windows)
 
 1. Go and buy a mac
