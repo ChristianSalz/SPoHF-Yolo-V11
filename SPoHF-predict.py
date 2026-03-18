@@ -2,6 +2,15 @@ from PIL import Image
 import numpy as np
 import cv2  # Required for color conversion
 from ultralytics import YOLO
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Get prediction parameters from environment variables with defaults
+conf_threshold = float(os.getenv('CONFIDENCE_THRESHOLD', '0.70'))
+iou_threshold = float(os.getenv('IOU_THRESHOLD', '0.20'))
 
 # Load the image and resize it to:
 image_path = './Manual-Test-Data/1.jpg'
@@ -15,7 +24,8 @@ model = YOLO('./runs/detect/train9/weights/last.pt')
 # Run inference on the resized image
 # conf=0.40 the minimum confidence for diplaying boundingboxes
 # iou=0.20 threshold value for the intersection over union, if you have cludded boxes (20% means if two boxes overlap by 20% only one will be drawn)
-results = model.predict(image, conf=0.70, iou=0.20)
+# Run YOLO inference to detect insects with env variables
+results = model.predict(image, conf=conf_threshold, iou=iou_threshold)
 
 # Display results with custom settings
 annotated_image = results[0].plot(labels=True, font_size=6, line_width=2)
