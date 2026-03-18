@@ -5,7 +5,7 @@ from ultralytics import YOLO
 import tensorflow as tf
 
 # Load the image
-image_path = './Manual-Test-Data/23.png'
+image_path = './Manual-Test-Data/2.jpg'
 image = Image.open(image_path)
 
 # Convert to RGB if it has alpha channel (PNG)
@@ -21,7 +21,7 @@ yolo_model = YOLO('./runs/detect/train9/weights/last.pt')
 classifier_model = tf.keras.models.load_model('./InsectClassificationModel/insect_classifier.keras')
 
 # Run YOLO inference to detect insects
-results = yolo_model.predict(image, conf=0.70, iou=0.20)
+results = yolo_model.predict(image, conf=0.50, iou=0.20)
 
 detected_insects = results[0].boxes
 num_insects = len(detected_insects)
@@ -34,13 +34,13 @@ draw = ImageDraw.Draw(draw_image)
 
 # Define colors for different classes
 COLORS = {
-    'Musca-Domestica': (255, 0, 0),      # Red
-    'Others': (0, 255, 0)          # Green
+    'Muscidae': (255, 0, 0),      # Red
+    'Others': (0, 200, 0)          # Green
 }
 
 # Initialize counters
 class_counts = {
-    'Musca-Domestica': 0,
+    'Muscidae': 0,
     'Others': 0
 }
 
@@ -74,7 +74,7 @@ for idx, box in enumerate(detected_insects):
     
     # Determine class based on prediction
     if prediction < 0.5:
-        class_name = 'Musca-Domestica'
+        class_name = 'Muscidae'
         confidence = (1 - prediction) * 100
     else:
         class_name = 'Others'
@@ -108,5 +108,5 @@ draw_image.show()
 
 print(f"\nSummary:")
 print(f"Total insects detected: {num_insects}")
-print(f"Musca-Domestica: {class_counts['Musca-Domestica']}")
+print(f"Muscidae: {class_counts['Muscidae']}")
 print(f"Others: {class_counts['Others']}")

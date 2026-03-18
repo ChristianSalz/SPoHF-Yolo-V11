@@ -8,13 +8,26 @@ import os
 data_dir = "./Insect-Types-Classes"
 img_size = (224, 224)
 batch_size = 1
-epochs = 20  # Set higher, early stopping will control it
+epochs = 30  
 model_path = "./InsectClassificationModel/insect_classifier.keras"
 
-# Data preparation
-train_datagen = ImageDataGenerator(rescale=1./255, validation_split=0.2)
+# Data preparation with augmentation
+train_datagen = ImageDataGenerator(
+    rescale=1./255,
+    validation_split=0.2,
+    rotation_range=20,
+    width_shift_range=0.2,
+    height_shift_range=0.2,
+    horizontal_flip=True,
+    zoom_range=0.2,
+    shear_range=0.15,
+    fill_mode='nearest'
+)
+
+val_datagen = ImageDataGenerator(rescale=1./255, validation_split=0.2)
+
 train_data = train_datagen.flow_from_directory(data_dir, target_size=img_size, batch_size=batch_size, subset="training", class_mode='binary')
-val_data = train_datagen.flow_from_directory(data_dir, target_size=img_size, batch_size=batch_size, subset="validation", class_mode='binary')
+val_data = val_datagen.flow_from_directory(data_dir, target_size=img_size, batch_size=batch_size, subset="validation", class_mode='binary')
 
 # Build the model
 model = models.Sequential([
@@ -41,7 +54,7 @@ print(f"Total validation samples: {val_data.samples}")
 # Early stopping callback
 early_stopping = EarlyStopping(
     monitor='val_loss',
-    patience=3,
+    patience=10,
     restore_best_weights=True,
     verbose=1
 )
