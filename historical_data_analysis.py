@@ -1,0 +1,406 @@
+from PIL import Image
+from PIL.ExifTags import TAGS
+import numpy as np
+import cv2
+from ultralytics import YOLO
+import tensorflow as tf
+import os
+import matplotlib.pyplot as plt
+import pandas as pd
+from datetime import datetime
+from dotenv import load_dotenv
+from pillow_heif import register_heif_opener
+from concurrent.futures import ThreadPoolExecutor
+
+# Register HEIF/HEIC support with Pillow
+register_heif_opener()
+
+# Load environment variables
+load_dotenv()
+
+# ============== M4 MAX OPTIMIZATIONS ==============
+
+# Use all available CPU cores for TensorFlow
+NUM_CORES = os.cpu_count()  # M4 Max has 14 or 16 cores
+tf.config.threading.set_intra_op_parallelism_threads(NUM_CORES)
+tf.config.threading.set_inter_op_parallelism_threads(NUM_CORES)
+
+# Enable Metal GPU acceleration for TensorFlow if available
+try:
+    gpus = tf.config.list_physical_devices('GPU')
+    if gpus:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+        print(f"Metal GPU enabled: {gpus}")
+    else:
+        print("No GPU found, using CPU")
+except Exception as e:
+    print(f"GPU setup error: {e}")
+
+print(f"Using {NUM_CORES} CPU cores for TensorFlow")
+
+# Configuration
+historical_data_dir = "./historical_data"
+results_dir = "./historical_data_results"
+os.makedirs(results_dir, exist_ok=True)
+
+# Get prediction parameters from environment variables with defaults
+CONFIDENCE_THRESHOLD = float(os.getenv('CONFIDENCE_THRESHOLD', '0.20'))
+IOU_THRESHOLD = float(os.getenv('IOU_THRESHOLD', '0.20'))
+
+# Classification batch size (process multiple crops at once instead of one-by-one)
+CLASSIFICATION_BATCH_SIZE = 32
+
+# Load the YOLO detection model
+yolo_model = YOLO('./runs/detect/train9/weights/last.pt')
+
+# Load the Keras classification model
+classifier_model = tf.keras.models.load_model('./InsectClassificationModel/insect_classifier.keras')
+
+
+def extract_datetime_from_image(image_path):
+    """Extract the date and time from EXIF metadata of an image (supports JPG, PNG, HEIC)."""
+    try:
+        image = Image.open(image_path)
+
+        exif_data = None
+
+        # Method 1: _getexif() works for JPG/JPEG
+        if hasattr(image, '_getexif'):
+            try:
+                exif_data = image._getexif()
+            except Exception:
+                exif_data = None
+
+        # Method 2: getexif() works for HEIC via pillow-heif and also JPG
+        if exif_data is None:
+            try:
+                exif_info = image.getexif()
+                if exif_info:
+                    exif_data = dict(exif_info)
+                    # EXIF sub-IFD (tag 0x8769) contains DateTimeOriginal for HEIC
+                    exif_ifd = exif_info.get_ifd(0x8769)
+                    if exif_ifd:
+                        exif_data.update(exif_ifd)
+            except Exception:
+                exif_data = None
+
+        if exif_data is not None:
+            # First pass: look for DateTimeOriginal (preferred)
+            for tag_id, value in exif_data.items():
+                tag_name = TAGS.get(tag_id, tag_id)
+                if tag_name == "DateTimeOriginal":
+                    return datetime.strptime(value, "%Y:%m:%d %H:%M:%S")
+
+            # Second pass: fallback to DateTime
+            for tag_id, value in exif_data.items():
+                tag_name = TAGS.get(tag_id, tag_id)
+                if tag_name == "DateTime":
+                    return datetime.strptime(value, "%Y:%m:%d %H:%M:%S")
+
+    except Exception as e:
+        print(f"Could not extract EXIF date from {image_path}: {e}")
+
+    # Last resort: use file modification time
+    mod_time = os.path.getmtime(image_path)
+    print(f"Using file modification time for {os.path.basename(image_path)}")
+    return datetime.fromtimestamp(mod_time)
+
+
+def process_image(image_path):
+    """Process a single image through YOLO detection and batched classification."""
+    image = Image.open(image_path)
+
+    # Convert to RGB if needed (HEIC, PNG with alpha, etc.)
+    if image.mode in ('RGBA', 'LA', 'P'):
+        image = image.convert('RGB')
+
+    # Some HEIC images open as RGB already but just in case
+    if image.mode != 'RGB':
+        image = image.convert('RGB')
+
+    # Run YOLO inference
+    results = yolo_model.predict(image, conf=CONFIDENCE_THRESHOLD, iou=IOU_THRESHOLD)
+    detected_insects = results[0].boxes
+
+    # Initialize counters
+    class_counts = {'Muscidae': 0, 'Others': 0}
+
+    if len(detected_insects) == 0:
+        return class_counts, 0
+
+    # Collect all crops first, then classify in one batch
+    crops = []
+    for box in detected_insects:
+        x1, y1, x2, y2 = map(int, box.xyxy[0])
+
+        cropped_insect = image.crop((x1, y1, x2, y2))
+        cropped_resized = cropped_insect.resize((224, 224))
+
+        if cropped_resized.mode != 'RGB':
+            cropped_resized = cropped_resized.convert('RGB')
+
+        img_array = np.array(cropped_resized) / 255.0
+        crops.append(img_array)
+
+    # Batch classify all crops at once (much faster than one-by-one)
+    crops_batch = np.array(crops)
+
+    # Process in chunks if there are many detections
+    all_predictions = []
+    for i in range(0, len(crops_batch), CLASSIFICATION_BATCH_SIZE):
+        batch = crops_batch[i:i + CLASSIFICATION_BATCH_SIZE]
+        predictions = classifier_model.predict(batch, verbose=0, batch_size=CLASSIFICATION_BATCH_SIZE)
+        all_predictions.extend(predictions.flatten())
+
+    # Count classes from batch predictions
+    for prediction in all_predictions:
+        if prediction < 0.5:
+            class_counts['Muscidae'] += 1
+        else:
+            class_counts['Others'] += 1
+
+    return class_counts, len(detected_insects)
+
+
+def prefetch_exif(image_paths):
+    """Pre-extract EXIF dates using multiple threads (I/O bound task)."""
+    with ThreadPoolExecutor(max_workers=NUM_CORES) as executor:
+        dates = list(executor.map(extract_datetime_from_image, image_paths))
+    return dates
+
+
+# ============== MAIN PROCESSING ==============
+
+print("=" * 60)
+print("Historical Data Analysis")
+print("=" * 60)
+
+# Get all image files from the historical_data folder
+supported_extensions = ('.jpg', '.jpeg', '.png', '.tiff', '.tif', '.heic')
+image_files = [
+    f for f in os.listdir(historical_data_dir)
+    if f.lower().endswith(supported_extensions) and not f.startswith('.')
+]
+
+if len(image_files) == 0:
+    print(f"No images found in {historical_data_dir}")
+    exit()
+
+print(f"Found {len(image_files)} images to process\n")
+
+# Pre-extract all EXIF dates in parallel (threaded I/O)
+print("Extracting EXIF dates from all images...")
+image_paths = [os.path.join(historical_data_dir, f) for f in image_files]
+capture_dates = prefetch_exif(image_paths)
+print(f"EXIF extraction complete\n")
+
+# Store results for each image
+results_data = []
+
+for i, filename in enumerate(image_files):
+    image_path = os.path.join(historical_data_dir, filename)
+
+    print(f"[{i+1}/{len(image_files)}] Processing: {filename}")
+
+    capture_date = capture_dates[i]
+
+    # Process image through YOLO + batched classifier
+    class_counts, total_count = process_image(image_path)
+
+    # Store result
+    results_data.append({
+        'filename': filename,
+        'date': capture_date,
+        'total_insects': total_count,
+        'muscidae': class_counts['Muscidae'],
+        'others': class_counts['Others']
+    })
+
+    print(f"  Date: {capture_date.strftime('%Y-%m-%d %H:%M')}")
+    print(f"  Total: {total_count} | Muscidae: {class_counts['Muscidae']} | Others: {class_counts['Others']}")
+    print()
+
+# ============== CREATE DATAFRAME AND SORT BY DATE ==============
+
+df = pd.DataFrame(results_data)
+df = df.sort_values('date').reset_index(drop=True)
+
+# Add calendar week column (ISO week number and year)
+df['year'] = df['date'].dt.isocalendar().year.astype(int)
+df['week'] = df['date'].dt.isocalendar().week.astype(int)
+df['calendar_week'] = df['year'].astype(str) + '-KW' + df['week'].astype(str).str.zfill(2)
+
+# Save raw data as CSV
+csv_path = os.path.join(results_dir, 'historical_insect_data.csv')
+df.to_csv(csv_path, index=False)
+print(f"Data saved to {csv_path}")
+
+# ============== GENERATE CHARTS ==============
+
+# Format date labels for x-axis
+date_labels = df['date'].dt.strftime('%Y-%m-%d\n%H:%M')
+
+# 1. Population over time (double bar chart per image)
+fig, ax = plt.subplots(figsize=(max(12, len(df) * 1.5), 6))
+
+x = np.arange(len(df))
+bar_width = 0.35
+
+bars_muscidae = ax.bar(x - bar_width/2, df['muscidae'], bar_width, label='Muscidae', color='#d32f2f')
+bars_others = ax.bar(x + bar_width/2, df['others'], bar_width, label='Others', color='#388e3c')
+
+ax.set_xlabel('Capture Date')
+ax.set_ylabel('Number of Insects')
+ax.set_title('Insect Population Over Time (per Yellow Card Image)')
+ax.set_xticks(x)
+ax.set_xticklabels(date_labels, rotation=45, ha='right', fontsize=8)
+ax.legend()
+ax.grid(axis='y', alpha=0.3)
+
+for bar in bars_muscidae:
+    height = bar.get_height()
+    if height > 0:
+        ax.text(bar.get_x() + bar.get_width()/2., height, f'{int(height)}',
+                ha='center', va='bottom', fontsize=8, fontweight='bold')
+
+for bar in bars_others:
+    height = bar.get_height()
+    if height > 0:
+        ax.text(bar.get_x() + bar.get_width()/2., height, f'{int(height)}',
+                ha='center', va='bottom', fontsize=8, fontweight='bold')
+
+plt.tight_layout()
+plt.savefig(os.path.join(results_dir, 'population_over_time.png'), dpi=300, bbox_inches='tight')
+plt.close()
+print("Saved: population_over_time.png")
+
+# 2. Total insect count over time (line chart per image)
+fig, ax = plt.subplots(figsize=(max(12, len(df) * 1.5), 6))
+
+ax.plot(x, df['total_insects'], marker='o', linewidth=2, color='#1565c0', label='Total Insects')
+ax.plot(x, df['muscidae'], marker='s', linewidth=2, color='#d32f2f', label='Muscidae')
+ax.plot(x, df['others'], marker='^', linewidth=2, color='#388e3c', label='Others')
+
+ax.set_xlabel('Capture Date')
+ax.set_ylabel('Number of Insects')
+ax.set_title('Insect Population Trend Over Time')
+ax.set_xticks(x)
+ax.set_xticklabels(date_labels, rotation=45, ha='right', fontsize=8)
+ax.legend()
+ax.grid(alpha=0.3)
+
+plt.tight_layout()
+plt.savefig(os.path.join(results_dir, 'population_trend.png'), dpi=300, bbox_inches='tight')
+plt.close()
+print("Saved: population_trend.png")
+
+# 3. Average population per Kalenderwoche (aggregated)
+kw_grouped = df.groupby('calendar_week', sort=False).agg(
+    muscidae_avg=('muscidae', 'mean'),
+    others_avg=('others', 'mean'),
+    total_avg=('total_insects', 'mean'),
+    image_count=('filename', 'count'),
+    year=('year', 'first'),
+    week=('week', 'first')
+).reset_index()
+
+# Sort by year and week number
+kw_grouped = kw_grouped.sort_values(['year', 'week']).reset_index(drop=True)
+
+fig, ax = plt.subplots(figsize=(max(12, len(kw_grouped) * 2), 6))
+
+x_kw = np.arange(len(kw_grouped))
+bar_width = 0.35
+
+bars_m = ax.bar(x_kw - bar_width/2, kw_grouped['muscidae_avg'], bar_width, label='Muscidae (avg)', color='#d32f2f')
+bars_o = ax.bar(x_kw + bar_width/2, kw_grouped['others_avg'], bar_width, label='Others (avg)', color='#388e3c')
+
+ax.set_xlabel('Kalenderwoche')
+ax.set_ylabel('Average Number of Insects per Image')
+ax.set_title('Average Insect Population per Kalenderwoche')
+ax.set_xticks(x_kw)
+
+# Label with KW and image count
+kw_labels = [f"{row['calendar_week']}\n(n={int(row['image_count'])})" for _, row in kw_grouped.iterrows()]
+ax.set_xticklabels(kw_labels, rotation=45, ha='right', fontsize=8)
+ax.legend()
+ax.grid(axis='y', alpha=0.3)
+
+for bar in bars_m:
+    height = bar.get_height()
+    if height > 0:
+        ax.text(bar.get_x() + bar.get_width()/2., height, f'{height:.1f}',
+                ha='center', va='bottom', fontsize=8, fontweight='bold')
+
+for bar in bars_o:
+    height = bar.get_height()
+    if height > 0:
+        ax.text(bar.get_x() + bar.get_width()/2., height, f'{height:.1f}',
+                ha='center', va='bottom', fontsize=8, fontweight='bold')
+
+plt.tight_layout()
+plt.savefig(os.path.join(results_dir, 'population_per_kalenderwoche.png'), dpi=300, bbox_inches='tight')
+plt.close()
+print("Saved: population_per_kalenderwoche.png")
+
+# 4. Kalenderwoche trend line
+fig, ax = plt.subplots(figsize=(max(12, len(kw_grouped) * 2), 6))
+
+ax.plot(x_kw, kw_grouped['total_avg'], marker='o', linewidth=2, color='#1565c0', label='Total (avg)')
+ax.plot(x_kw, kw_grouped['muscidae_avg'], marker='s', linewidth=2, color='#d32f2f', label='Muscidae (avg)')
+ax.plot(x_kw, kw_grouped['others_avg'], marker='^', linewidth=2, color='#388e3c', label='Others (avg)')
+
+ax.set_xlabel('Kalenderwoche')
+ax.set_ylabel('Average Number of Insects per Image')
+ax.set_title('Average Insect Population Trend per Kalenderwoche')
+ax.set_xticks(x_kw)
+ax.set_xticklabels(kw_labels, rotation=45, ha='right', fontsize=8)
+ax.legend()
+ax.grid(alpha=0.3)
+
+plt.tight_layout()
+plt.savefig(os.path.join(results_dir, 'trend_per_kalenderwoche.png'), dpi=300, bbox_inches='tight')
+plt.close()
+print("Saved: trend_per_kalenderwoche.png")
+
+# 5. Summary pie chart
+fig, ax = plt.subplots(figsize=(8, 6))
+
+total_muscidae = df['muscidae'].sum()
+total_others = df['others'].sum()
+
+ax.pie(
+    [total_muscidae, total_others],
+    labels=['Muscidae', 'Others'],
+    autopct='%1.1f%%',
+    colors=['#d32f2f', '#388e3c'],
+    startangle=90,
+    textprops={'fontsize': 14}
+)
+ax.set_title(f'Overall Insect Distribution (Total: {total_muscidae + total_others})')
+
+plt.tight_layout()
+plt.savefig(os.path.join(results_dir, 'distribution_pie_chart.png'), dpi=300, bbox_inches='tight')
+plt.close()
+print("Saved: distribution_pie_chart.png")
+
+# ============== PRINT SUMMARY ==============
+
+print("\n" + "=" * 60)
+print("SUMMARY")
+print("=" * 60)
+print(f"Total images processed: {len(df)}")
+print(f"Date range: {df['date'].min().strftime('%Y-%m-%d')} to {df['date'].max().strftime('%Y-%m-%d')}")
+print(f"Total insects detected: {df['total_insects'].sum()}")
+print(f"Total Muscidae: {total_muscidae}")
+print(f"Total Others: {total_others}")
+print(f"Average insects per image: {df['total_insects'].mean():.1f}")
+print(f"Peak count: {df['total_insects'].max()} ({df.loc[df['total_insects'].idxmax(), 'filename']})")
+
+print(f"\nPer Kalenderwoche:")
+for _, row in kw_grouped.iterrows():
+    print(f"  {row['calendar_week']}: avg {row['total_avg']:.1f} insects ({int(row['image_count'])} images)")
+
+print(f"\nAll results saved to: {results_dir}/")
+print("=" * 60)
