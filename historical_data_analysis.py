@@ -295,7 +295,7 @@ plt.savefig(os.path.join(results_dir, 'population_trend.png'), dpi=300, bbox_inc
 plt.close()
 print("Saved: population_trend.png")
 
-# 3. Average population per Kalenderwoche (aggregated)
+# 3. Average population per calendar week (aggregated)
 kw_grouped = df.groupby('calendar_week', sort=False).agg(
     muscidae_avg=('muscidae', 'mean'),
     others_avg=('others', 'mean'),
@@ -316,9 +316,9 @@ bar_width = 0.35
 bars_m = ax.bar(x_kw - bar_width/2, kw_grouped['muscidae_avg'], bar_width, label='Muscidae (avg)', color='#d32f2f')
 bars_o = ax.bar(x_kw + bar_width/2, kw_grouped['others_avg'], bar_width, label='Others (avg)', color='#388e3c')
 
-ax.set_xlabel('Kalenderwoche')
+ax.set_xlabel('Calendar week')
 ax.set_ylabel('Average Number of Insects per Image')
-ax.set_title('Average Insect Population per Kalenderwoche')
+ax.set_title('Average Insect Population per Calendar Week')
 ax.set_xticks(x_kw)
 
 # Label with KW and image count
@@ -340,31 +340,75 @@ for bar in bars_o:
                 ha='center', va='bottom', fontsize=8, fontweight='bold')
 
 plt.tight_layout()
-plt.savefig(os.path.join(results_dir, 'population_per_kalenderwoche.png'), dpi=300, bbox_inches='tight')
+plt.savefig(os.path.join(results_dir, 'population_per_calendar_week.png'), dpi=300, bbox_inches='tight')
 plt.close()
-print("Saved: population_per_kalenderwoche.png")
+print("Saved: population_per_calendar_week.png")
 
-# 4. Kalenderwoche trend line
+# 4. Calendar week trend line
 fig, ax = plt.subplots(figsize=(max(12, len(kw_grouped) * 2), 6))
 
 ax.plot(x_kw, kw_grouped['total_avg'], marker='o', linewidth=2, color='#1565c0', label='Total (avg)')
 ax.plot(x_kw, kw_grouped['muscidae_avg'], marker='s', linewidth=2, color='#d32f2f', label='Muscidae (avg)')
 ax.plot(x_kw, kw_grouped['others_avg'], marker='^', linewidth=2, color='#388e3c', label='Others (avg)')
 
-ax.set_xlabel('Kalenderwoche')
+ax.set_xlabel('Calendar_Week')
 ax.set_ylabel('Average Number of Insects per Image')
-ax.set_title('Average Insect Population Trend per Kalenderwoche')
+ax.set_title('Average Insect Population Trend per Calendar Week')
 ax.set_xticks(x_kw)
 ax.set_xticklabels(kw_labels, rotation=45, ha='right', fontsize=8)
 ax.legend()
 ax.grid(alpha=0.3)
 
 plt.tight_layout()
-plt.savefig(os.path.join(results_dir, 'trend_per_kalenderwoche.png'), dpi=300, bbox_inches='tight')
+plt.savefig(os.path.join(results_dir, 'trend_per_calendar_week.png'), dpi=300, bbox_inches='tight')
 plt.close()
-print("Saved: trend_per_kalenderwoche.png")
+print("Saved: trend_per_calendar_week.png")
 
-# 5. Summary pie chart
+# 5. Box plot per calendar week (min, max, median, mean, quartiles)
+# Sort calendar weeks for correct order
+kw_order = kw_grouped['calendar_week'].tolist()
+
+fig, axes = plt.subplots(1, 3, figsize=(max(18, len(kw_grouped) * 3), 7))
+
+for ax, column, title, color in [
+    (axes[0], 'total_insects', 'Total Insects', '#1565c0'),
+    (axes[1], 'muscidae', 'Muscidae', '#d32f2f'),
+    (axes[2], 'others', 'Others', '#388e3c'),
+]:
+    # Group data per calendar week in correct order
+    data_per_kw = [df[df['calendar_week'] == kw][column].values for kw in kw_order]
+
+    bp = ax.boxplot(
+        data_per_kw,
+        patch_artist=True,
+        showmeans=True,
+        meanprops=dict(marker='D', markerfacecolor='gold', markeredgecolor='black', markersize=7),
+        medianprops=dict(color='black', linewidth=2),
+        boxprops=dict(facecolor=color, alpha=0.6),
+        whiskerprops=dict(color=color, linewidth=1.5),
+        capprops=dict(color=color, linewidth=1.5),
+        flierprops=dict(marker='o', markerfacecolor=color, alpha=0.5),
+    )
+
+    # Add image count labels
+    box_kw_labels = [f"{kw}\n(n={int(kw_grouped[kw_grouped['calendar_week'] == kw]['image_count'].values[0])})" for kw in kw_order]
+    ax.set_xticklabels(box_kw_labels, rotation=45, ha='right', fontsize=7)
+    ax.set_title(title)
+    ax.set_ylabel('Count per Image')
+    ax.grid(axis='y', alpha=0.3)
+
+# Add legend for mean marker
+axes[0].plot([], [], marker='D', color='gold', markeredgecolor='black', linestyle='None', label='Mean')
+axes[0].plot([], [], color='black', linewidth=2, label='Median')
+axes[0].legend(loc='upper left', fontsize=8)
+
+fig.suptitle('Insect Count Distribution per Calendar Week', fontsize=14, fontweight='bold')
+plt.tight_layout()
+plt.savefig(os.path.join(results_dir, 'boxplot_per_calendar_week.png'), dpi=300, bbox_inches='tight')
+plt.close()
+print("Saved: boxplot_per_calendar_week.png")
+
+# 6. Summary pie chart
 fig, ax = plt.subplots(figsize=(8, 6))
 
 total_muscidae = df['muscidae'].sum()
@@ -398,7 +442,7 @@ print(f"Total Others: {total_others}")
 print(f"Average insects per image: {df['total_insects'].mean():.1f}")
 print(f"Peak count: {df['total_insects'].max()} ({df.loc[df['total_insects'].idxmax(), 'filename']})")
 
-print(f"\nPer Kalenderwoche:")
+print(f"\nPer Calendar weeks:")
 for _, row in kw_grouped.iterrows():
     print(f"  {row['calendar_week']}: avg {row['total_avg']:.1f} insects ({int(row['image_count'])} images)")
 
