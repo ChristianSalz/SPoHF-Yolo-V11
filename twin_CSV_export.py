@@ -158,10 +158,19 @@ for (_, fname, ts), count in zip(final, all_counts):
     })
     print(f"  {fname} | {ts.strftime('%Y-%m-%d %H:%M')} | insects: {count}")
 
-# Save CSV
-df = pd.DataFrame(results_data).sort_values('timestamp').reset_index(drop=True)
+# Save CSV – merge with existing data, overwrite rows with matching timestamp
 csv_path = os.path.join(RESULTS_DIR, 'insect_data.csv')
+df = pd.DataFrame(results_data)
+
+if os.path.exists(csv_path):
+    existing_df = pd.read_csv(csv_path)
+    # Drop any existing rows whose timestamp is being re-processed
+    existing_df = existing_df[~existing_df['timestamp'].isin(df['timestamp'])]
+    df = pd.concat([existing_df, df], ignore_index=True)
+    print(f"  Merged with existing CSV ({len(existing_df)} previous rows retained)")
+
+df = df.sort_values('timestamp').reset_index(drop=True)
 df.to_csv(csv_path, index=False)
 
-print(f"\nDone. {len(df)} images processed, {skipped} skipped.")
+print(f"\nDone. {len(results_data)} images processed, {skipped} skipped.")
 print(f"CSV saved to: {csv_path}")
